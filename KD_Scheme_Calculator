@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Scheme Calculator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+:root {
+  --primary:#0078d4;
+  --bg:#f2f4f7;
+  --card:#ffffff;
+  --border:#d0d5dd;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, Arial;
+  background: var(--bg);
+  margin: 0;
+  padding: 12px;
+}
+
+.app {
+  max-width: 900px;
+  margin: auto;
+}
+
+.header {
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.08);
+}
+
+.card h3 {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  text-align: center;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
+
+th {
+  background: #f0f2f5;
+  padding: 10px;
+  font-size: .85rem;
+  white-space: nowrap;
+}
+
+td {
+  border: 1px solid var(--border);
+  padding: 8px;
+  font-size: .85rem;
+  text-align: center;
+}
+
+.total-row {
+  background: #e8f5e9;
+  font-weight: 600;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  font-size: 1rem;
+  text-align: center;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #f9fbff;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+@media(min-width:768px){
+  table{min-width:100%}
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+  <div class="header">📱 Scheme Calculator</div>
+
+  <!-- INPUT CARD -->
+  <div class="card">
+    <h3>Input Quantities</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Product</th><th>Qty</th></tr>
+        <tr><td>Firex</td><td><input id="firex" type="number" value="0"></td></tr>
+        <tr><td>Suprex</td><td><input id="suprex" type="number" value="0"></td></tr>
+        <tr><td>Q1</td><td><input id="q1" type="number" value="0"></td></tr>
+        <tr><td>Unilay</td><td><input id="unilay" type="number" value="0"></td></tr>
+        <tr><td>Flamex</td><td><input id="flamex" type="number" value="0"></td></tr>
+        <tr class="total-row">
+          <td>Total</td>
+          <td id="totalQty">0</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- RESULT CARD -->
+  <div class="card">
+    <h3>Results</h3>
+    <div class="table-wrap">
+      <table>
+        <tr>
+          <th>Benefits</th>
+          <th>₹ Short Term</th>
+          <th>₹ / Coil</th>
+          <th>Points</th>
+        </tr>
+
+        <tr>
+          <td>Dosti 6.0</td>
+          <td id="f5"></td>
+          <td id="g5"></td>
+          <td id="h5"></td>
+        </tr>
+
+        <tr>
+          <td>Quarterly</td>
+          <td id="f6"></td>
+          <td id="g6"></td>
+          <td></td>
+        </tr>
+
+        <tr class="total-row">
+          <td>Per Coil Benefit</td>
+          <td id="f7"></td>
+          <td id="g7"></td>
+          <td id="h7"></td>
+        </tr>
+
+        <tr><th colspan="4">Only Firex</th></tr>
+
+        <tr>
+          <td>Firex (U)</td>
+          <td id="f10"></td>
+          <td id="g10"></td>
+          <td id="h10"></td>
+        </tr>
+
+        <tr>
+          <td>Firex (Q)</td>
+          <td id="f11"></td>
+          <td id="g11"></td>
+          <td></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const inputs = document.querySelectorAll("input");
+
+inputs.forEach(i => i.addEventListener("input", calc));
+
+function fmt(n, currency=false){
+  if (isNaN(n)) return "";
+  return (currency ? "₹ " : "") +
+    Number(n).toLocaleString("en-IN", {minimumFractionDigits:2});
+}
+
+function calc(){
+  let C5=+firex.value, C6=+suprex.value, C7=+q1.value,
+      C8=+unilay.value, C9p=+flamex.value;
+
+  let C9=C5+C6+C7+C8+C9p;
+  totalQty.textContent=C9;
+
+  let K=[30,10,10,12,12];
+  let J=[120,40,40,48,48];
+
+  let F5=C5*K[0]+C6*K[1]+C7*K[2]+C8*K[3]+C9p*K[4];
+  let G5=C9?F5/C9:0;
+  let H5=C5*J[0]+C6*J[1]+C7*J[2]+C8*J[3]+C9p*J[4];
+
+  let F6=(Math.floor(C9/10)*10*7.5)+(Math.floor(C5/10)*10*10);
+  let G6=C9?F6/C9:0;
+
+  let F7=C9?(F5+F6)/C9:0;
+  let G7=G5+G6;
+  let H7=C9?H5/C9:0;
+
+  let F10=C5*K[0], G10=C5?F10/C5:0, H10=C5*J[0];
+  let F11=(Math.floor(C5/10)*10*7.5)+(Math.floor(C5/10)*10*10);
+  let G11=C5?F11/C5:0;
+
+  f5.innerHTML=fmt(F5,true);
+  g5.innerHTML=fmt(G5,true);
+  h5.innerHTML=fmt(H5);
+
+  f6.innerHTML=fmt(F6,true);
+  g6.innerHTML=fmt(G6,true);
+
+  f7.innerHTML=fmt(F7,true);
+  g7.innerHTML=fmt(G7,true);
+  h7.innerHTML=fmt(H7);
+
+  f10.innerHTML=fmt(F10,true);
+  g10.innerHTML=fmt(G10,true);
+  h10.innerHTML=fmt(H10);
+
+  f11.innerHTML=fmt(F11,true);
+  g11.innerHTML=fmt(G11,true);
+}
+
+calc(); // initial load
+</script>
+
+</body>
+</html>
