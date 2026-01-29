@@ -1,38 +1,47 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, abort
 import os
-import requests
 
 app = Flask(__name__)
 
+# -------------------------------
+# HOME ROUTE
+# -------------------------------
 @app.route("/")
 def home():
-    return "Scheme Calculator Running ✅"
+    return """
+    <h2>KC Scheme Calculator</h2>
+    <p>Use URL format:</p>
+    <code>/scheme/&lt;state_name&gt;</code>
+    <br><br>
+    Example:
+    <ul>
+      <li>/scheme/rajasthan</li>
+      <li>/scheme/delhi_ncr</li>
+      <li>/scheme/tamil_nadu</li>
+    </ul>
+    """
 
-@app.route("/scheme")
-def scheme():
-    # Detect user IP
-    ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+# -------------------------------
+# SINGLE DYNAMIC ROUTE FOR ALL STATES
+# -------------------------------
+@app.route("/scheme/<state>")
+def scheme(state):
+    """
+    Converts URL state into template name
+    Example:
+    /scheme/delhi_ncr -> scheme_delhi_ncr.html
+    """
+
+    template_name = f"scheme_{state}.html"
 
     try:
-        # Free IP → State API
-        res = requests.get(f"https://ipapi.co/{ip}/json/").json()
-        state = res.get("region", "").lower()
-    except:
-        state = ""
+        return render_template(template_name)
+    except Exception:
+        abort(404, description=f"Scheme not available for: {state}")
 
-    # State-based routing
-    if "rajasthan" in state:
-        return render_template("scheme_rajasthan.html")
-
-    elif "delhi" in state or "ncr" in state:
-        return render_template("scheme_delhi.html")
-
-    elif "maharashtra" in state:
-        return render_template("scheme_maharashtra.html")
-
-    # Fallback (important)
-    return render_template("scheme_rajasthan.html")
-
+# -------------------------------
+# REQUIRED FOR RENDER
+# -------------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
