@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Scheme Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<h3>Detecting your location…</h3>
+
+<script>
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(
+    function(position) {
+      fetch("/detect_state", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        window.location.href = "/scheme_view/" + data.state;
+      });
+    },
+    function() {
+      document.body.innerHTML = "❌ Location permission denied";
+    }
+  );
+} else {
+  document.body.innerHTML = "❌ Geolocation not supported";
+}
+</script>
+
+</body>
+</html>
