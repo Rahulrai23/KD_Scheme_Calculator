@@ -1,1 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KC Scheme Calculator – Delhi NCR</title>
+  <link rel="stylesheet" href="/static/style.css">
+
+  <script>
+    function calculateScheme() {
+      const products = {
+        firex: 80,
+        suprex: 40,
+        q1: 40,
+        unilay: 60,
+        flamex: 60
+      };
+
+      let totalPoints = 0;
+
+      for (let p in products) {
+        const qty = Number(document.getElementById(p).value || 0);
+        totalPoints += qty * products[p];
+      }
+
+      let rate = 0;
+
+      if (totalPoints >= 751) rate = 12.5;
+      else if (totalPoints >= 501) rate = 12;
+      else if (totalPoints >= 301) rate = 11.5;
+      else if (totalPoints >= 201) rate = 11;
+      else if (totalPoints >= 151) rate = 10.5;
+      else if (totalPoints >= 101) rate = 10;
+      else if (totalPoints >= 51) rate = 9;
+      else if (totalPoints >= 31) rate = 8;
+      else if (totalPoints >= 21) rate = 7;
+      else rate = 0;
+
+      const earnings = totalPoints * rate;
+
+      document.getElementById("points").innerText = totalPoints;
+      document.getElementById("rate").innerText = "₹ " + rate;
+      document.getElementById("earnings").innerText = "₹ " + earnings.toFixed(2);
+    }
+  </script>
+</head>
+
+<body>
+<div class="container">
+
+<h2 style="text-align:center">
+KC Scheme Calculator FY25–26 (Q4)<br>
+<b>DELHI NCR</b>
+</h2>
+
+<hr>
+
+<h3>Input Quantities</h3>
+
+<table width="100%" border="1">
+<tr><th>Product</th><th>Quantity</th></tr>
+
+<tr><td>Firex</td><td><input id="firex" type="number" oninput="calculateScheme()"></td></tr>
+<tr><td>SupreX</td><td><input id="suprex" type="number" oninput="calculateScheme()"></td></tr>
+<tr><td>Q1</td><td><input id="q1" type="number" oninput="calculateScheme()"></td></tr>
+<tr><td>Unilay</td><td><input id="unilay" type="number" oninput="calculateScheme()"></td></tr>
+<tr><td>FlameX</td><td><input id="flamex" type="number" oninput="calculateScheme()"></td></tr>
+</table>
+
+<hr>
+
+<h3>Results</h3>
+
+<p><b>Total Coils / Points:</b> <span id="points">0</span></p>
+<p><b>Applicable Rate:</b> <span id="rate">₹ 0</span> per coil</p>
+<p><b>Total Earnings:</b> <span id="earnings">₹ 0</span></p>
+
+<hr>
+
+<p style="font-size:12px;color:gray">
+✔ Scheme applicable for <b>Delhi NCR</b><br>
+✔ Period: 1st Jan – 31st Mar 2026<br>
+✔ 90 Meter BW Packaging only
+</p>
+
+</div>
+</body>
+</html>
 
