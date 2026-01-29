@@ -1,14 +1,19 @@
 from flask import Flask, render_template
 import os
 
-# ✅ CREATE APP FIRST
-app = Flask(__name__)
+# ✅ CREATE FLASK APP
+app = Flask(
+    __name__,
+    template_folder="templates",
+    static_folder="static"
+)
 
-# ✅ ROUTE AFTER app IS DEFINED
+# ✅ HOME ROUTE (HEALTH CHECK)
 @app.route("/")
 def home():
     return "Scheme Calculator is Running ✅"
 
+# ✅ RAJASTHAN SCHEME ROUTE
 @app.route("/scheme/rajasthan")
 def scheme_rajasthan():
     return render_template("scheme_rajasthan.html")
