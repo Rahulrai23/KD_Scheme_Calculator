@@ -1,43 +1,32 @@
-from flask import Flask, render_template, abort
+from flask import Flask, render_template, abort, jsonify
 import os
 
 app = Flask(__name__)
 
 # -------------------------------
-# HOME ROUTE
+# HOME
 # -------------------------------
 @app.route("/")
 def home():
-    return """
-    <h2>KC Scheme Calculator</h2>
-    <p>Use URL format:</p>
-    <code>/scheme/&lt;state_name&gt;</code>
-    <br><br>
-    Example:
-    <ul>
-      <li>/scheme/rajasthan</li>
-      <li>/scheme/delhi_ncr</li>
-      <li>/scheme/tamil_nadu</li>
-    </ul>
-    """
+    return render_template("detect.html")
 
 # -------------------------------
-# SINGLE DYNAMIC ROUTE FOR ALL STATES
+# AUTO-DETECT ENTRY POINT
+# -------------------------------
+@app.route("/scheme")
+def detect_scheme():
+    return render_template("detect.html")
+
+# -------------------------------
+# ALL STATES (DYNAMIC)
 # -------------------------------
 @app.route("/scheme/<state>")
 def scheme(state):
-    """
-    Converts URL state into template name
-    Example:
-    /scheme/delhi_ncr -> scheme_delhi_ncr.html
-    """
-
     template_name = f"scheme_{state}.html"
-
     try:
         return render_template(template_name)
     except Exception:
-        abort(404, description=f"Scheme not available for: {state}")
+        abort(404, description=f"Scheme not available for {state}")
 
 # -------------------------------
 # REQUIRED FOR RENDER
