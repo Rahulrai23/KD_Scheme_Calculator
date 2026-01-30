@@ -33,7 +33,7 @@ STATE_TEMPLATE_MAP = {
 }
 
 # --------------------------------------------------
-# CLIENT IP HANDLING (RENDER SAFE)
+# CLIENT IP (RENDER SAFE)
 # --------------------------------------------------
 def get_client_ip():
     forwarded = request.headers.get("X-Forwarded-For", "")
@@ -59,36 +59,36 @@ def detect_state(ip):
         if city in ["delhi", "new delhi", "noida", "gurgaon", "faridabad", "ghaziabad"]:
             return "delhi"
 
-        return region
+        return region if region else None
 
     except Exception:
         return None
 
 
 # --------------------------------------------------
-# HOME (PWA ENTRY POINT)
+# HOME (PWA / GPS ENTRY)
 # --------------------------------------------------
 @app.route("/")
 def home():
-    # IMPORTANT: must return HTML, not text
     return render_template("detect.html")
 
 
 # --------------------------------------------------
-# SINGLE ENTRY POINT (AUTO STATE)
+# AUTO-DETECT ENTRY (IP → FALLBACK TO GPS)
 # --------------------------------------------------
 @app.route("/scheme")
 def scheme():
     ip = get_client_ip()
     state = detect_state(ip)
 
+    # ✅ IMPORTANT FIX: fallback instead of blocking
     if not state:
-        abort(403, "❌ Unable to detect your location")
+        return render_template("detect.html")
 
     template = STATE_TEMPLATE_MAP.get(state)
 
     if not template:
-        abort(403, f"❌ Scheme not available for {state.title()}")
+        return render_template("detect.html")
 
     return render_template(
         template,
@@ -97,7 +97,24 @@ def scheme():
 
 
 # --------------------------------------------------
-# BLOCK DIRECT ACCESS
+# GPS CONFIRMED ROUTE (SECURE)
+# --------------------------------------------------
+@app.route("/scheme/confirm/<state>")
+def scheme_confirm(state):
+    state = state.replace("_", " ").lower()
+    template = STATE_TEMPLATE_MAP.get(state)
+
+    if not template:
+        abort(404)
+
+    return render_template(
+        template,
+        state_name=state.upper()
+    )
+
+
+# --------------------------------------------------
+# BLOCK DIRECT URL TAMPERING
 # --------------------------------------------------
 @app.route("/scheme/<path:anything>")
 def block_direct_access(anything):
@@ -105,7 +122,7 @@ def block_direct_access(anything):
 
 
 # --------------------------------------------------
-# REQUIRED FOR RENDER
+# RUN (RENDER)
 # --------------------------------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
