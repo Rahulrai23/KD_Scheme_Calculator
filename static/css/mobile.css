@@ -1,0 +1,60 @@
+<style>
+  body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 20px; }
+  h2 { text-align: center; margin-bottom: 20px; color: #333; }
+
+  .layout-wrapper {
+    display: flex;
+    justify-content: center;
+    gap: 20px; 
+    max-width: 1000px;
+    margin: 0 auto;
+    align-items: stretch; 
+  }
+
+  .column-left { width: 480px; }
+  .column-right { width: 480px; }
+
+  table { width: 100%; border-collapse: collapse; background: #fff; }
+  th, td { border: 1px solid #444; padding: 5px; text-align: center; }
+
+  /* ========================= */
+  /* 📱 MOBILE RESPONSIVE FIX */
+  /* ========================= */
+  @media (max-width: 768px) {
+
+    body {
+      padding: 10px;
+    }
+
+    h2 {
+      font-size: 18px;
+      line-height: 1.3;
+    }
+
+    .layout-wrapper {
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .column-left,
+    .column-right {
+      width: 100%;
+    }
+
+    table {
+      font-size: 14px;
+    }
+
+    input {
+      width: 100%;
+      font-size: 16px;
+      padding: 6px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+    }
+  }
+</style>
