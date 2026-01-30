@@ -5,10 +5,10 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "kc-secure-key")
 
 # ----------------------------------
-# STATE → TEMPLATE MAP
+# STATE → TEMPLATE MAP (FIXED)
 # ----------------------------------
 STATE_TEMPLATE_MAP = {
-    "delhi": "scheme_delhi.html",
+    "delhi": "scheme_delhi_ncr.html",   # ✅ FIXED NAME
     "haryana": "scheme_haryana.html",
     "rajasthan": "scheme_rajasthan.html",
     "karnataka": "scheme_karnataka.html",
@@ -17,7 +17,7 @@ STATE_TEMPLATE_MAP = {
     "maharashtra": "scheme_mumbai.html"
 }
 
-DEFAULT_STATE = "delhi"   # ✅ HARD FALLBACK (CRITICAL)
+DEFAULT_STATE = "delhi"   # ✅ HARD FALLBACK (NEVER FAIL)
 
 # ----------------------------------
 # CLIENT IP (RENDER SAFE)
@@ -27,7 +27,7 @@ def get_client_ip():
     return forwarded.split(",")[0].strip() if forwarded else request.remote_addr
 
 # ----------------------------------
-# SAFE STATE DETECTION (NO FAIL)
+# SAFE STATE DETECTION
 # ----------------------------------
 def detect_state(ip):
     try:
@@ -49,18 +49,18 @@ def detect_state(ip):
     except Exception:
         pass
 
-    # 🚑 FINAL SAFETY NET (NEVER FAIL)
+    # 🚑 FINAL SAFETY NET
     return DEFAULT_STATE
 
 # ----------------------------------
-# HOME
+# HOME (ENTRY POINT)
 # ----------------------------------
 @app.route("/")
 def home():
     return render_template("detect.html")
 
 # ----------------------------------
-# SINGLE ENTRY POINT (LOCKED)
+# SINGLE SECURE ENTRY POINT
 # ----------------------------------
 @app.route("/scheme")
 def scheme():
@@ -78,14 +78,14 @@ def scheme():
     )
 
 # ----------------------------------
-# BLOCK URL TAMPERING
+# BLOCK URL TAMPERING COMPLETELY
 # ----------------------------------
 @app.route("/scheme/<path:anything>")
 def block(anything):
     abort(403, "Unauthorized state access")
 
 # ----------------------------------
-# RUN
+# RUN (RENDER)
 # ----------------------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
