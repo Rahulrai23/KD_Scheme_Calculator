@@ -87,18 +87,23 @@ def home():
 # ----------------------------------
 @app.route("/scheme")
 def scheme():
-    # Already locked → reuse
     if "locked_state" in session:
         state = session["locked_state"]
     else:
         ip = get_client_ip()
         state = detect_state(ip)
-        session["locked_state"] = state   # 🔐 lock once
+
+        if not state:
+            # 👉 Ask user ONCE
+            return render_template("select_state.html")
+
+        session["locked_state"] = state
 
     return render_template(
         STATE_TEMPLATE_MAP[state],
         state_name=state.upper()
     )
+
 
 # ----------------------------------
 # BLOCK URL TAMPERING COMPLETELY
