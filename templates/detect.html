@@ -2,42 +2,34 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Detecting State...</title>
+  <title>Detecting State…</title>
+
+  <!-- PWA compatibility -->
+  <meta name="theme-color" content="#1a6d8c">
 </head>
+
 <body style="font-family:Arial;text-align:center;padding:40px">
 
 <h2>📍 Detecting your location…</h2>
-<p>Please allow location access</p>
+<p>Please wait, loading your scheme</p>
 
 <script>
-function redirectByState(state) {
-  window.location.href = "/scheme/" + state;
-}
+/*
+  IMPORTANT:
+  - Do NOT detect state on frontend
+  - Do NOT redirect to /scheme/<state>
+  - Backend handles everything securely
+*/
 
-navigator.geolocation.getCurrentPosition(
-  function(position) {
-    const lat = position.coords.latitude;
-    const lon = position.coords.longitude;
-
-    // VERY SIMPLE INDIA STATE MAPPING (can expand)
-    if (lat > 28 && lat < 29 && lon > 76 && lon < 78) {
-      redirectByState("delhi_ncr");
-    } else if (lat > 26 && lat < 28 && lon > 73 && lon < 76) {
-      redirectByState("rajasthan");
-    } else if (lat > 12 && lat < 13 && lon > 77 && lon < 78) {
-      redirectByState("karnataka");
-    } else if (lat > 8 && lat < 13 && lon > 76 && lon < 80) {
-      redirectByState("tamil_nadu");
-    } else {
-      redirectByState("rajasthan"); // fallback
-    }
-  },
-  function() {
-    alert("Location permission denied. Showing default scheme.");
-    redirectByState("rajasthan");
-  }
-);
+setTimeout(function () {
+  window.location.replace("/scheme");
+}, 800);
 </script>
+
+<noscript>
+  <p>JavaScript is required to load the scheme.</p>
+  <a href="/scheme">Click here to continue</a>
+</noscript>
 
 </body>
 </html>
