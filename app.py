@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 
 # --------------------------------------------------
-# STATE → TEMPLATE MAPPING (KEYS NORMALIZED)
+# STATE → TEMPLATE MAPPING (NORMALIZED KEYS)
 # --------------------------------------------------
 STATE_TEMPLATE_MAP = {
     "delhi": "scheme_delhi_ncr.html",
@@ -33,52 +33,49 @@ STATE_TEMPLATE_MAP = {
 }
 
 # --------------------------------------------------
-# IP → STATE DETECTION (RENDER SAFE)
+# CLIENT IP HANDLING (RENDER SAFE)
 # --------------------------------------------------
 def get_client_ip():
-    """
-    Handles Render / proxy headers safely
-    """
     forwarded = request.headers.get("X-Forwarded-For", "")
     if forwarded:
         return forwarded.split(",")[0].strip()
     return request.remote_addr
 
 
+# --------------------------------------------------
+# IP → STATE DETECTION
+# --------------------------------------------------
 def detect_state(ip):
-    """
-    Uses ipapi (India-friendly)
-    """
     try:
         res = requests.get(
             f"https://ipapi.co/{ip}/json/",
             timeout=4
         ).json()
 
-        # Prefer region, fallback to city-based NCR logic
-        region = res.get("region", "").strip()
-        city = res.get("city", "").lower()
+        region = res.get("region", "").strip().lower()
+        city = res.get("city", "").strip().lower()
 
-        # NCR override (important)
+        # NCR override
         if city in ["delhi", "new delhi", "noida", "gurgaon", "faridabad", "ghaziabad"]:
             return "delhi"
 
-        return region.lower()
+        return region
 
     except Exception:
         return None
 
 
 # --------------------------------------------------
-# HOME
+# HOME (PWA ENTRY POINT)
 # --------------------------------------------------
 @app.route("/")
 def home():
-    return "KC Scheme Calculator Running ✅"
+    # IMPORTANT: must return HTML, not text
+    return render_template("detect.html")
 
 
 # --------------------------------------------------
-# SINGLE ENTRY POINT (SECURE)
+# SINGLE ENTRY POINT (AUTO STATE)
 # --------------------------------------------------
 @app.route("/scheme")
 def scheme():
@@ -100,7 +97,7 @@ def scheme():
 
 
 # --------------------------------------------------
-# BLOCK DIRECT STATE ACCESS
+# BLOCK DIRECT ACCESS
 # --------------------------------------------------
 @app.route("/scheme/<path:anything>")
 def block_direct_access(anything):
