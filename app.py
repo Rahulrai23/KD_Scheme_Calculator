@@ -8,16 +8,39 @@ app.secret_key = os.environ.get("SECRET_KEY", "kc-secure-key")
 # STATE → TEMPLATE MAP (FIXED)
 # ----------------------------------
 STATE_TEMPLATE_MAP = {
-    "delhi": "scheme_delhi_ncr.html",   # ✅ FIXED NAME
+    "delhi": "scheme_delhi_ncr.html",
     "haryana": "scheme_haryana.html",
     "rajasthan": "scheme_rajasthan.html",
     "karnataka": "scheme_karnataka.html",
     "tamil nadu": "scheme_tamil_nadu.html",
     "telangana": "scheme_telangana.html",
-    "maharashtra": "scheme_mumbai.html"
+    "maharashtra": "scheme_mumbai.html",
+    "west bengal": "scheme_west_bengal.html"   # ✅ ADD THIS
 }
 
-DEFAULT_STATE = "delhi"   # ✅ HARD FALLBACK (NEVER FAIL)
+def detect_state(ip):
+    try:
+        res = requests.get(
+            f"https://ipapi.co/{ip}/json/",
+            timeout=3
+        ).json()
+
+        city = (res.get("city") or "").lower()
+        region = (res.get("region") or "").lower()
+
+        # NCR override
+        if city in ["delhi", "new delhi", "noida", "gurgaon", "faridabad", "ghaziabad"]:
+            return "delhi"
+
+        if region in STATE_TEMPLATE_MAP:
+            return region
+
+    except Exception:
+        pass
+
+    # ❌ DO NOT FORCE DELHI
+    return None
+
 
 # ----------------------------------
 # CLIENT IP (RENDER SAFE)
