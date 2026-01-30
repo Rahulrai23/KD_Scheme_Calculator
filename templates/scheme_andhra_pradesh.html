@@ -4,6 +4,13 @@
 <meta name="theme-color" content="#1a6d8c">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KC Scheme Calculator – {{ state_name }}</title>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("/static/pwa/service-worker.js");
+  });
+}
+</script>
 
 <style>
   body {
