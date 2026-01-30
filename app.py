@@ -104,6 +104,19 @@ def scheme():
         state_name=state.upper()
     )
 
+@app.route("/set-state", methods=["POST"])
+def set_state():
+    state = request.form.get("state")
+
+    if state not in STATE_TEMPLATE_MAP:
+        abort(403)
+
+    session["locked_state"] = state
+    return render_template(
+        STATE_TEMPLATE_MAP[state],
+        state_name=state.upper()
+    )
+
 
 # ----------------------------------
 # BLOCK URL TAMPERING COMPLETELY
