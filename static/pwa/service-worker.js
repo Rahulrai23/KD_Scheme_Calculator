@@ -1,4 +1,4 @@
-const CACHE_NAME = "kc-scheme-v2";
+const CACHE_NAME = "kc-scheme-v3";
 
 /*
   Only STATIC & SAFE assets here
