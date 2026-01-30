@@ -1,1 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>KC Scheme Calculator - TAMIL NADU</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 20px; }
+  h2 { text-align: center; margin-bottom: 20px; color: #333; }
 
+  .layout-wrapper {
+    display: flex;
+    justify-content: center;
+    gap: 20px; 
+    max-width: 1000px;
+    margin: 0 auto;
+    align-items: stretch; 
+  }
+
+  .column-left { 
+    width: 480px;
+    display: flex; 
+    flex-direction: column;
+    justify-content: space-between; 
+  }
+
+  .column-right { width: 480px; }
+
+  table { width: 100%; border-collapse: collapse; background: #fff; table-layout: fixed; }
+  th, td { border: 1px solid #444; padding: 5px; text-align: center; font-size: 0.9rem; }
+
+  .header-main { background-color: #ed7d31; color: white; height: 20px; } 
+  .header-blue { background-color: #1a6d8c; color: white; height: 20px; } 
+  .sub-header-yellow { background-color: #ffffcc; font-weight: bold; color: #000; height: 15px; } 
+  
+  /* Adjusted padding to force bottom alignment with Level-M */
+  .input-table td {
+    padding: 2px 8px; 
+  }
+
+  .row-light-blue { background-color: #d9edf7; }
+  .total-row { background: #e2efda; font-weight: bold; }
+
+  /* Yellow Highlight for the active slab */
+  .highlight-slab { background-color: #ffff00 !important; font-weight: bold; }
+
+  input { width: 80%; border: 1px solid #aaa; padding: 3px; text-align: center; font-size: 0.9rem; }
+  .btn-container { text-align: center; margin: 30px 0; }
+  
+  /* Reset button styling - Red color for clarity */
+  button { 
+    padding: 12px 50px; 
+    background: #d93025; 
+    color: white; 
+    border: none; 
+    cursor: pointer; 
+    border-radius: 4px; 
+    font-weight: bold; 
+  }
+  button:hover { background: #b71c1c; }
+
+  .results-area { max-width: 980px; margin: 20px auto; }
+</style>
+</head>
+<body>
+
+<h2>KC Scheme Calculator - TAMIL NADU</h2>
+
+<div class="layout-wrapper">
+  <div class="column-left">
+    <div class="table-group">
+      <table>
+        <tr><th colspan="3" class="header-main">Udaan 6.2 Benefits</th></tr>
+        <tr class="header-blue">
+          <th>Product</th>
+          <th>INR/Coil</th>
+          <th>Points/Coil</th>
+        </tr>
+        <tr><td>Firex</td><td>20</td><td>80</td></tr>
+        <tr class="row-light-blue"><td>SupreX</td><td>10</td><td>40</td></tr>
+        <tr><td>Q1</td><td>10</td><td>40</td></tr>
+        <tr class="row-light-blue"><td>Unilay</td><td>15</td><td>60</td></tr>
+        <tr><td>FlameX</td><td>15</td><td>60</td></tr>
+      </table>
+    </div>
+
+    <div class="table-group">
+      <table class="input-table">
+        <tr><th colspan="2" class="sub-header-yellow">Input Quantities</th></tr>
+        <tr class="header-blue">
+          <th style="width: 60%;">Product</th>
+          <th style="width: 40%;">Quantity</th>
+        </tr>
+        <tr><td>Firex</td><td><input id="firex" type="number" value="0" oninput="calc()"></td></tr>
+        <tr class="row-light-blue"><td>SupreX</td><td><input id="suprex" type="number" value="0" oninput="calc()"></td></tr>
+        <tr><td>Q1</td><td><input id="q1" type="number" value="0" oninput="calc()"></td></tr>
+        <tr class="row-light-blue"><td>Unilay</td><td><input id="unilay" type="number" value="0" oninput="calc()"></td></tr>
+        <tr><td>FlameX</td><td><input id="flamex" type="number" value="0" oninput="calc()"></td></tr>
+        <tr class="total-row">
+          <td>Total Quantity</td>
+          <td id="totalQty">0</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="column-right">
+    <table id="bonanzaTable">
+      <tr><th colspan="4" class="header-main">Year End Bonanza (Q) Benefits</th></tr>
+      <tr class="header-blue">
+        <th>Level</th>
+        <th>Min</th>
+        <th>Max</th>
+        <th>Rs./Coil</th>
+      </tr>
+      <tr data-min="0" data-max="20"><td>Level-A</td><td>0</td><td>20</td><td>0</td></tr>
+      <tr data-min="21" data-max="30" class="row-light-blue"><td>Level-B</td><td>21</td><td>30</td><td>9</td></tr>
+      <tr data-min="31" data-max="50"><td>Level-C</td><td>31</td><td>50</td><td>10</td></tr>
+      <tr data-min="51" data-max="80" class="row-light-blue"><td>Level-D</td><td>51</td><td>80</td><td>11</td></tr>
+      <tr data-min="81" data-max="100"><td>Level-E</td><td>81</td><td>100</td><td>12</td></tr>
+      <tr data-min="101" data-max="150" class="row-light-blue"><td>Level-F</td><td>101</td><td>150</td><td>13</td></tr>
+      <tr data-min="151" data-max="200"><td>Level-G</td><td>151</td><td>200</td><td>13.5</td></tr>
+      <tr data-min="201" data-max="300" class="row-light-blue"><td>Level-H</td><td>201</td><td>300</td><td>14</td></tr>
+      <tr data-min="301" data-max="500"><td>Level-I</td><td>301</td><td>500</td><td>14.5</td></tr>
+      <tr data-min="501" data-max="700" class="row-light-blue"><td>Level-J</td><td>501</td><td>700</td><td>15</td></tr>
+      <tr data-min="701" data-max="1000"><td>Level-K</td><td>701</td><td>1000</td><td>15.5</td></tr>
+      <tr data-min="1001" data-max="1500" class="row-light-blue"><td>Level-L</td><td>1001</td><td>1500</td><td>16</td></tr>
+      <tr data-min="1501" data-max="2500"><td>Level-K</td><td>1501</td><td>2500</td><td>16.5</td></tr>
+      <tr data-min="2501" data-max="4000" class="row-light-blue"><td>Level-L</td><td>2501</td><td>4000</td><td>17</td></tr>
+      <tr data-min="4001" data-max="999999"><td>Level-M</td><td>4001</td><td>Above</td><td>18</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="btn-container"><button onclick="resetCalculator()">RESET</button></div>
+
+<div class="results-area">
+  <table>
+    <tr class="header-blue">
+      <th>Reward Breakdown</th>
+      <th>Short Term (INR)</th>
+      <th>Per Coil (INR)</th>
+      <th>Points to Udaan 6.2</th>
+    </tr>
+    <tr><td>Udaan 6.2</td><td id="res_f5"></td><td id="res_g5"></td><td id="res_h5"></td></tr>
+    <tr class="row-light-blue"><td>Bonanza (Q)</td><td id="res_f6"></td><td id="res_g6"></td><td id="res_h6"></td></tr>
+    <tr class="total-row"><td>Grand Total</td><td id="res_f7"></td><td id="res_g7"></td><td id="res_h7"></td></tr>
+  </table>
+</div>
+
+<script>
+function updateHighlight(total) {
+  const rows = document.querySelectorAll('#bonanzaTable tr[data-min]');
+  rows.forEach(row => {
+    const min = parseInt(row.getAttribute('data-min'));
+    const max = parseInt(row.getAttribute('data-max'));
+    if (total >= min && total <= max) {
+      row.classList.add('highlight-slab');
+    } else {
+      row.classList.remove('highlight-slab');
+    }
+  });
+}
+
+// Function to reset all inputs and refresh calculations
+function resetCalculator() {
+  document.getElementById('firex').value = 0;
+  document.getElementById('suprex').value = 0;
+  document.getElementById('q1').value = 0;
+  document.getElementById('unilay').value = 0;
+  document.getElementById('flamex').value = 0;
+  calc(); // Trigger calculation to reset result fields
+}
+
+function calc(){
+  const f = +document.getElementById('firex').value;
+  const s = +document.getElementById('suprex').value;
+  const q = +document.getElementById('q1').value;
+  const u = +document.getElementById('unilay').value;
+  const fx = +document.getElementById('flamex').value;
+  
+  const total = f + s + q + u + fx;
+  document.getElementById('totalQty').innerText = total;
+
+  updateHighlight(total);
+
+  const st_val = (f*20) + (s*10) + (q*10) + (u*15) + (fx*15);
+  const lt_pts = (f*80) + (s*40) + (q*40) + (u*60) + (fx*60);
+
+  let bRate = 0;
+  if(total > 4000) bRate = 18;
+  else if(total > 2500) bRate = 17;
+  else if(total > 1500) bRate = 16.5;
+  else if(total > 1000) bRate = 16;
+  else if(total > 700) bRate = 15.5;
+  else if(total > 500) bRate = 15;
+  else if(total > 300) bRate = 14.5;
+  else if(total > 200) bRate = 14;
+  else if(total > 150) bRate = 13.5;
+  else if(total > 100) bRate = 13;
+  else if(total > 80) bRate = 12;
+  else if(total > 50) bRate = 11;
+  else if(total > 30) bRate = 10;
+  else if(total > 20) bRate = 9;
+
+  const bonanza_total = total * bRate;
+  const formatCurrency = (val) => "Rs. " + val.toLocaleString('en-IN', {minimumFractionDigits: 2});
+
+  document.getElementById('res_f5').innerText = formatCurrency(st_val);
+  document.getElementById('res_g5').innerText = total ? formatCurrency(st_val/total) : "Rs. 0.00";
+  document.getElementById('res_h5').innerText = lt_pts.toLocaleString('en-IN');
+  document.getElementById('res_f6').innerText = formatCurrency(bonanza_total);
+  document.getElementById('res_g6').innerText = "Rs. " + bRate.toFixed(2);
+  document.getElementById('res_h6').innerText = (bonanza_total)*4;
+  document.getElementById('res_f7').innerText = formatCurrency(st_val + bonanza_total);
+  document.getElementById('res_g7').innerText = total ? formatCurrency((st_val + bonanza_total)/total) : "Rs. 0.00";
+  document.getElementById('res_h7').innerText = total ? (((lt_pts+(bonanza_total)*4))/total).toFixed(1) + " pts/coil" : "0 pts";
+}
+calc();
+</script>
+</body>
+</html>
