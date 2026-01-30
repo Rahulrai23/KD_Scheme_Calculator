@@ -1,28 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detecting Location</title>
+</head>
+<body style="font-family:Arial;text-align:center;padding:40px">
+
+<h2>📍 Detecting your location…</h2>
+<p>Please wait</p>
+
 <script>
-function redirectByState(state) {
-  window.location.href = "/scheme/confirm/" + state;
-}
-
-navigator.geolocation.getCurrentPosition(
-  function(pos) {
-    const lat = pos.coords.latitude;
-    const lon = pos.coords.longitude;
-
-    if (lat > 28 && lat < 29 && lon > 76 && lon < 78) {
-      redirectByState("delhi");
-    } else if (lat > 26 && lat < 28 && lon > 73 && lon < 76) {
-      redirectByState("rajasthan");
-    } else if (lat > 12 && lat < 13 && lon > 77 && lon < 78) {
-      redirectByState("karnataka");
-    } else if (lat > 8 && lat < 13 && lon > 76 && lon < 80) {
-      redirectByState("tamil_nadu");
-    } else {
-      redirectByState("rajasthan");
-    }
-  },
-  function() {
-    alert("Location access required. Defaulting to Rajasthan.");
-    redirectByState("rajasthan");
-  }
-);
+  // Always redirect to /scheme
+  window.location.replace("/scheme");
 </script>
+
+</body>
+</html>
