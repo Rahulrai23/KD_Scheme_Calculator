@@ -1,101 +1,36 @@
-from flask import Flask, render_template, request, abort, session
-import requests, os
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Detecting Location</title>
+</head>
+<body>
 
-app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "kc-secure-key")
+<h3>Detecting your location…</h3>
 
-# ----------------------------------
-# STATE → TEMPLATE MAP
-# ----------------------------------
-STATE_TEMPLATE_MAP = {
-    "delhi": "scheme_delhi_ncr.html",
-    "haryana": "scheme_haryana.html",
-    "rajasthan": "scheme_rajasthan.html",
-    "karnataka": "scheme_karnataka.html",
-    "tamil nadu": "scheme_tamil_nadu.html",
-    "telangana": "scheme_telangana.html",
-    "maharashtra": "scheme_mumbai.html",
-    "west bengal": "scheme_west_bengal.html"
+<script>
+if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            fetch("/gps-detect", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    lat: pos.coords.latitude,
+                    lon: pos.coords.longitude
+                })
+            }).finally(() => {
+                window.location.href = "/scheme";
+            });
+        },
+        function() {
+            window.location.href = "/scheme";
+        },
+        { timeout: 8000 }
+    );
+} else {
+    window.location.href = "/scheme";
 }
+</script>
 
-# ----------------------------------
-# CLIENT IP (RENDER SAFE)
-# ----------------------------------
-def get_client_ip():
-    forwarded = request.headers.get("X-Forwarded-For", "")
-    return forwarded.split(",")[0].strip() if forwarded else request.remote_addr
-
-# ----------------------------------
-# IP → STATE DETECTION (NO FALLBACK)
-# ----------------------------------
-def detect_state(ip):
-    try:
-        res = requests.get(
-            f"https://ipapi.co/{ip}/json/",
-            timeout=3
-        ).json()
-
-        city = (res.get("city") or "").lower()
-        region = (res.get("region") or "").lower()
-
-        # NCR override
-        if city in ["delhi", "new delhi", "noida", "gurgaon", "faridabad", "ghaziabad"]:
-            return "delhi"
-
-        if region in STATE_TEMPLATE_MAP:
-            return region
-
-    except Exception:
-        pass
-
-    return None  # ❌ NO DEFAULT
-
-# ----------------------------------
-# HOME
-# ----------------------------------
-@app.route("/")
-def home():
-    return render_template("detect.html")
-
-# ----------------------------------
-# SCHEME (IP ONLY, LOCKED)
-# ----------------------------------
-@app.route("/scheme")
-def scheme():
-
-    # 🔒 Already locked → never re-detect
-    if "locked_state" in session:
-        state = session["locked_state"]
-        return render_template(
-            STATE_TEMPLATE_MAP[state],
-            state_name=state.upper()
-        )
-
-    ip = get_client_ip()
-    state = detect_state(ip)
-
-    if not state:
-        return render_template(
-            "error.html",
-            message="State Scheme Not Found"
-        )
-
-    session["locked_state"] = state  # 🔐 LOCK
-
-    return render_template(
-        STATE_TEMPLATE_MAP[state],
-        state_name=state.upper()
-    )
-
-# ----------------------------------
-# BLOCK EVERYTHING ELSE
-# ----------------------------------
-@app.route("/scheme/<path:anything>")
-def block(anything):
-    abort(403)
-
-# ----------------------------------
-# RUN (RENDER)
-# ----------------------------------
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+</body>
+</html>
