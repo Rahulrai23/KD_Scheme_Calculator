@@ -7,15 +7,28 @@ app.secret_key = os.environ.get("SECRET_KEY", "kc-secure-key")
 # ----------------------------------
 # STATE → TEMPLATE MAP
 # ----------------------------------
-STATE_TEMPLATE_MAP = {
+STATE_TEMPLATE_MAP = STATE_TEMPLATE_MAP = {
+    "andhra pradesh": "scheme_andhra_pradesh.html",
+    "assam": "scheme_assam.html",
+    "bihar": "scheme_bihar.html",
+    "chhattisgarh": "scheme_chhattisgarh.html",
     "delhi": "scheme_delhi_ncr.html",
+    "gujarat": "scheme_gujarat.html",
     "haryana": "scheme_haryana.html",
-    "rajasthan": "scheme_rajasthan.html",
+    "jharkhand": "scheme_jharkhand.html",
     "karnataka": "scheme_karnataka.html",
+    "kerala": "scheme_kerala.html",
+    "madhya pradesh": "scheme_madhya_pradesh.html",
+    "maharashtra": "scheme_rest_of_maharashtra.html",
+    "odisha": "scheme_odisha.html",
+    "punjab": "scheme_punjab.html",
+    "rajasthan": "scheme_rajasthan.html",
     "tamil nadu": "scheme_tamil_nadu.html",
     "telangana": "scheme_telangana.html",
-    "maharashtra": "scheme_mumbai.html",
-    "west bengal": "scheme_west_bengal.html"
+    "uttar pradesh": "scheme_uttar_pradesh.html",
+    "uttarakhand": "scheme_uttarakhand.html",
+    "west bengal": "scheme_west_bengal.html",
+    "unknown": "scheme_unknown.html"
 }
 
 # ----------------------------------
