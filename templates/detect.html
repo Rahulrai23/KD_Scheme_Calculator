@@ -1,13 +1,39 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KC Scheme</title>
+  <title>Detecting Location</title>
 </head>
-<body style="font-family:Arial;text-align:center;padding:40px">
-  <h3>Loading scheme…</h3>
-  <script>
-    window.location.replace("/scheme");
-  </script>
+<body>
+
+<h3>Detecting your location…</h3>
+
+<script>
+if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            fetch("/gps-detect", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    lat: position.coords.latitude,
+                    lon: position.coords.longitude
+                })
+            }).then(() => {
+                window.location.href = "/scheme";
+            });
+        },
+        function(error) {
+            // ❌ GPS denied → fallback to IP
+            window.location.href = "/scheme";
+        },
+        { timeout: 8000 }
+    );
+} else {
+    window.location.href = "/scheme";
+}
+</script>
+
 </body>
 </html>
