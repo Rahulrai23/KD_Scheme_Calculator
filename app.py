@@ -26,7 +26,7 @@ def get_client_ip():
     return forwarded.split(",")[0].strip() if forwarded else request.remote_addr
 
 # ----------------------------------
-# SAFE STATE DETECTION (NO DEFAULT)
+# IP → STATE DETECTION (NO FALLBACK)
 # ----------------------------------
 def detect_state(ip):
     try:
@@ -48,7 +48,7 @@ def detect_state(ip):
     except Exception:
         pass
 
-    return None  # ✅ NO DEFAULT
+    return None  # ❌ NO DEFAULT
 
 # ----------------------------------
 # HOME
@@ -58,12 +58,12 @@ def home():
     return render_template("detect.html")
 
 # ----------------------------------
-# MAIN SCHEME ENTRY (LOCK ONCE)
+# SCHEME (IP ONLY, LOCKED)
 # ----------------------------------
 @app.route("/scheme")
 def scheme():
 
-    # 🔒 If state already locked, never change it
+    # 🔒 Already locked → never re-detect
     if "locked_state" in session:
         state = session["locked_state"]
         return render_template(
@@ -71,17 +71,16 @@ def scheme():
             state_name=state.upper()
         )
 
-    # 🔍 Detect only once
     ip = get_client_ip()
     state = detect_state(ip)
 
     if not state:
         return render_template(
-            "select_state.html",
-            error="State Scheme Not Found"
+            "error.html",
+            message="State Scheme Not Found"
         )
 
-    session["locked_state"] = state  # 🔐 LOCK STATE
+    session["locked_state"] = state  # 🔐 LOCK
 
     return render_template(
         STATE_TEMPLATE_MAP[state],
@@ -89,37 +88,14 @@ def scheme():
     )
 
 # ----------------------------------
-# MANUAL STATE SET (ONLY ONCE)
-# ----------------------------------
-@app.route("/set-state", methods=["POST"])
-def set_state():
-
-    # 🚫 Block if already locked
-    if "locked_state" in session:
-        abort(403, "State already locked")
-
-    state = request.form.get("state")
-
-    if state not in STATE_TEMPLATE_MAP:
-        abort(403)
-
-    session["locked_state"] = state  # 🔐 LOCK STATE
-
-    return render_template(
-        STATE_TEMPLATE_MAP[state],
-        state_name=state.upper()
-    )
-
-# ----------------------------------
-# BLOCK URL TAMPERING
+# BLOCK EVERYTHING ELSE
 # ----------------------------------
 @app.route("/scheme/<path:anything>")
 def block(anything):
-    abort(403, "Unauthorized state access")
+    abort(403)
 
 # ----------------------------------
 # RUN (RENDER)
 # ----------------------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
