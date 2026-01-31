@@ -1,24 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Detecting Location</title>
+</head>
+<body>
+
+<h3>Detecting your location…</h3>
+
 <script>
 if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
         function(pos) {
-            fetch("/gps-detect", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    lat: pos.coords.latitude,
-                    lon: pos.coords.longitude
-                })
-            })
-            .then(res => res.text())
-            .then(state => {
-                fetch("/scheme", {
-                    headers: {
-                        "X-GPS-State": state
-                    }
-                }).then(() => {
-                    window.location.href = "/scheme";
-                });
+            fetch("/scheme", {
+                headers: {
+                    "X-GPS-State": ""
+                }
+            });
+
+            fetch("https://nominatim.openstreetmap.org/reverse?format=json&lat="
+                + pos.coords.latitude + "&lon=" + pos.coords.longitude)
+            .then(res => res.json())
+            .then(data => {
+                const state = (data.address && data.address.state)
+                    ? data.address.state.toLowerCase()
+                    : "";
+                window.location.href = "/scheme";
             });
         },
         function() {
@@ -30,3 +36,6 @@ if (navigator.geolocation) {
     window.location.href = "/scheme";
 }
 </script>
+
+</body>
+</html>
