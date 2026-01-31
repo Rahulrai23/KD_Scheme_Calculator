@@ -11,6 +11,7 @@
 if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
         function(pos) {
+            // GPS SUCCESS → send to backend
             fetch("/gps-detect", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -19,14 +20,16 @@ if (navigator.geolocation) {
                     lon: pos.coords.longitude
                 })
             })
-            .then(() => window.location.href = "/scheme");
+            .finally(() => window.location.href = "/scheme");
         },
         function() {
+            // GPS FAILED → fallback to IP
             window.location.href = "/scheme";
         },
-        { enableHighAccuracy: true, maximumAge: 0 }
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 8000 }
     );
 } else {
+    // GPS not supported
     window.location.href = "/scheme";
 }
 </script>
