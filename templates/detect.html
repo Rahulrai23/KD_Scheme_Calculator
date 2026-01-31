@@ -1,12 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Detecting Location</title>
-</head>
-<body>
-
-<h3>Detecting your location…</h3>
-
 <script>
 if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
@@ -18,19 +9,24 @@ if (navigator.geolocation) {
                     lat: pos.coords.latitude,
                     lon: pos.coords.longitude
                 })
-            }).finally(() => {
-                window.location.href = "/scheme";
+            })
+            .then(res => res.text())
+            .then(state => {
+                fetch("/scheme", {
+                    headers: {
+                        "X-GPS-State": state
+                    }
+                }).then(() => {
+                    window.location.href = "/scheme";
+                });
             });
         },
         function() {
             window.location.href = "/scheme";
         },
-        { timeout: 8000 }
+        { enableHighAccuracy: true, maximumAge: 0 }
     );
 } else {
     window.location.href = "/scheme";
 }
 </script>
-
-</body>
-</html>
