@@ -1,7 +1,9 @@
-from flask import Flask, render_template, request, abort
-import requests, os
+from flask import Flask, render_template, request, abort, session
+import requests
+import os
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "kc-secure-key")
 
 # ----------------------------------
 # STATE → TEMPLATE MAP
@@ -26,18 +28,9 @@ STATE_TEMPLATE_MAP = {
     "telangana": "scheme_telangana.html",
     "uttar pradesh": "scheme_uttar_pradesh.html",
     "uttarakhand": "scheme_uttarakhand.html",
-    "west bengal": "scheme_west_bengal.html"
+    "west bengal": "scheme_west_bengal.html",
+    "unknown": "scheme_unknown.html"
 }
-
-# ----------------------------------
-# DISABLE BROWSER CACHING (CRITICAL)
-# ----------------------------------
-@app.after_request
-def disable_cache(response):
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-    return response
 
 # ----------------------------------
 # CLIENT IP (RENDER SAFE)
@@ -47,7 +40,7 @@ def get_client_ip():
     return forwarded.split(",")[0].strip() if forwarded else request.remote_addr
 
 # ----------------------------------
-# IP → STATE DETECTION (HARDENED)
+# IP → STATE DETECTION (FIXED)
 # ----------------------------------
 def detect_state_from_ip(ip):
     try:
@@ -59,13 +52,14 @@ def detect_state_from_ip(ip):
         city = (res.get("city") or "").lower()
         region = (res.get("region") or "").lower()
 
-        # ✅ NCR override ONLY if region matches NCR states
+        # NCR override ONLY if region matches NCR states
         if (
             city in ["delhi", "new delhi", "noida", "gurgaon", "faridabad", "ghaziabad"]
             and region in ["delhi", "haryana", "uttar pradesh"]
         ):
             return "delhi"
 
+        # Normal state detection
         if region in STATE_TEMPLATE_MAP:
             return region
 
@@ -114,20 +108,42 @@ def home():
     return render_template("detect.html")
 
 # ----------------------------------
+# GPS ENDPOINT (LOCK ONCE)
+# ----------------------------------
+@app.route("/gps-detect", methods=["POST"])
+def gps_detect():
+    if "locked_state" in session:
+        return "", 204
+
+    data = request.get_json() or {}
+    lat = data.get("lat")
+    lon = data.get("lon")
+
+    if not lat or not lon:
+        return "", 204
+
+    state = detect_state_from_gps(lat, lon)
+
+    if state:
+        session["locked_state"] = state
+
+    return "", 204
+
+# ----------------------------------
 # SCHEME (GPS → IP → ERROR)
 # ----------------------------------
 @app.route("/scheme")
 def scheme():
 
-    # 1️⃣ GPS STATE FROM BROWSER (FRESH EVERY TIME)
-    gps_state = request.headers.get("X-GPS-State")
-    if gps_state and gps_state in STATE_TEMPLATE_MAP:
+    # Locked → never change
+    if "locked_state" in session:
+        state = session["locked_state"]
         return render_template(
-            STATE_TEMPLATE_MAP[gps_state],
-            state_name=gps_state.upper()
+            STATE_TEMPLATE_MAP[state],
+            state_name=state.upper()
         )
 
-    # 2️⃣ IP FALLBACK (FRESH EVERY TIME)
+    # IP fallback
     ip = get_client_ip()
     state = detect_state_from_ip(ip)
 
@@ -136,6 +152,8 @@ def scheme():
             "error.html",
             message="State Scheme Not Found"
         )
+
+    session["locked_state"] = state
 
     return render_template(
         STATE_TEMPLATE_MAP[state],
@@ -153,4 +171,7 @@ def block(anything):
 # RUN (RENDER)
 # ----------------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 5000))
+    )
