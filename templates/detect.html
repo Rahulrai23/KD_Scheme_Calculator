@@ -11,21 +11,15 @@
 if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
         function(pos) {
-            fetch("/scheme", {
-                headers: {
-                    "X-GPS-State": ""
-                }
-            });
-
-            fetch("https://nominatim.openstreetmap.org/reverse?format=json&lat="
-                + pos.coords.latitude + "&lon=" + pos.coords.longitude)
-            .then(res => res.json())
-            .then(data => {
-                const state = (data.address && data.address.state)
-                    ? data.address.state.toLowerCase()
-                    : "";
-                window.location.href = "/scheme";
-            });
+            fetch("/gps-detect", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    lat: pos.coords.latitude,
+                    lon: pos.coords.longitude
+                })
+            })
+            .then(() => window.location.href = "/scheme");
         },
         function() {
             window.location.href = "/scheme";
