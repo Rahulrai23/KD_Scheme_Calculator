@@ -5,7 +5,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "kc-secure-key")
 
 # ----------------------------------
-# STATE → TEMPLATE MAP (FIXED)
+# STATE → TEMPLATE MAP
 # ----------------------------------
 STATE_TEMPLATE_MAP = {
     "delhi": "scheme_delhi_ncr.html",
@@ -15,32 +15,8 @@ STATE_TEMPLATE_MAP = {
     "tamil nadu": "scheme_tamil_nadu.html",
     "telangana": "scheme_telangana.html",
     "maharashtra": "scheme_mumbai.html",
-    "west bengal": "scheme_west_bengal.html"   # ✅ ADD THIS
+    "west bengal": "scheme_west_bengal.html"
 }
-
-def detect_state(ip):
-    try:
-        res = requests.get(
-            f"https://ipapi.co/{ip}/json/",
-            timeout=3
-        ).json()
-
-        city = (res.get("city") or "").lower()
-        region = (res.get("region") or "").lower()
-
-        # NCR override
-        if city in ["delhi", "new delhi", "noida", "gurgaon", "faridabad", "ghaziabad"]:
-            return "delhi"
-
-        if region in STATE_TEMPLATE_MAP:
-            return region
-
-    except Exception:
-        pass
-
-    # ❌ DO NOT FORCE DELHI
-    return None
-
 
 # ----------------------------------
 # CLIENT IP (RENDER SAFE)
@@ -50,7 +26,7 @@ def get_client_ip():
     return forwarded.split(",")[0].strip() if forwarded else request.remote_addr
 
 # ----------------------------------
-# SAFE STATE DETECTION
+# SAFE STATE DETECTION (NO DEFAULT)
 # ----------------------------------
 def detect_state(ip):
     try:
@@ -72,18 +48,18 @@ def detect_state(ip):
     except Exception:
         pass
 
-    # 🚑 FINAL SAFETY NET
-    return DEFAULT_STATE
+    # ❌ NO DEFAULT — LET UI HANDLE IT
+    return None
 
 # ----------------------------------
-# HOME (ENTRY POINT)
+# HOME
 # ----------------------------------
 @app.route("/")
 def home():
     return render_template("detect.html")
 
 # ----------------------------------
-# SINGLE SECURE ENTRY POINT
+# MAIN SCHEME ENTRY
 # ----------------------------------
 @app.route("/scheme")
 def scheme():
@@ -94,8 +70,10 @@ def scheme():
         state = detect_state(ip)
 
         if not state:
-            # 👉 Ask user ONCE
-            return render_template("select_state.html")
+            return render_template(
+                "select_state.html",
+                error="State Scheme Not Found"
+            )
 
         session["locked_state"] = state
 
@@ -104,6 +82,9 @@ def scheme():
         state_name=state.upper()
     )
 
+# ----------------------------------
+# MANUAL STATE SET (USER SELECT)
+# ----------------------------------
 @app.route("/set-state", methods=["POST"])
 def set_state():
     state = request.form.get("state")
@@ -112,14 +93,14 @@ def set_state():
         abort(403)
 
     session["locked_state"] = state
+
     return render_template(
         STATE_TEMPLATE_MAP[state],
         state_name=state.upper()
     )
 
-
 # ----------------------------------
-# BLOCK URL TAMPERING COMPLETELY
+# BLOCK URL TAMPERING
 # ----------------------------------
 @app.route("/scheme/<path:anything>")
 def block(anything):
