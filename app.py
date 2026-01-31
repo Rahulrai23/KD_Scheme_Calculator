@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, abort
-import requests, os
+import requests
+import os
 
 app = Flask(__name__)
 
@@ -30,11 +31,13 @@ STATE_TEMPLATE_MAP = {
 }
 
 # ----------------------------------
-# DISABLE CACHE
+# DISABLE CACHE (IMPORTANT)
 # ----------------------------------
 @app.after_request
 def disable_cache(resp):
     resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
     return resp
 
 # ----------------------------------
@@ -68,17 +71,24 @@ def detect_state_from_gps(lat, lon):
 # ----------------------------------
 def detect_state_from_ip(ip):
     try:
-        res = requests.get(f"https://ipapi.co/{ip}/json/", timeout=3).json()
+        res = requests.get(
+            f"https://ipapi.co/{ip}/json/",
+            timeout=3
+        ).json()
+
         city = (res.get("city") or "").lower()
         region = (res.get("region") or "").lower()
 
+        # Delhi safe handling
         if city in ["delhi", "new delhi"] or region == "delhi":
             return "delhi"
 
         if region in STATE_TEMPLATE_MAP:
             return region
+
     except Exception:
         pass
+
     return None
 
 # ----------------------------------
@@ -89,16 +99,20 @@ def home():
     return render_template("detect.html")
 
 # ----------------------------------
-# GPS ENDPOINT (FRESH EVERY TIME)
+# GPS ENDPOINT (NO SESSION)
 # ----------------------------------
 @app.route("/gps-detect", methods=["POST"])
 def gps_detect():
     data = request.get_json() or {}
-    lat, lon = data.get("lat"), data.get("lon")
+    lat = data.get("lat")
+    lon = data.get("lon")
+
     if lat and lon:
         state = detect_state_from_gps(lat, lon)
         if state:
+            # send state back as response body
             return state
+
     return ""
 
 # ----------------------------------
@@ -107,14 +121,18 @@ def gps_detect():
 @app.route("/scheme")
 def scheme():
 
-    # 1️⃣ Try GPS again (browser just sent it)
-    ip = get_client_ip()
+    # 1️⃣ Try GPS again if browser sent it recently
+    # (GPS is already attempted before redirect)
 
-    # 2️⃣ IP fallback
+    # 2️⃣ IP fallback (always works if GPS failed)
+    ip = get_client_ip()
     state = detect_state_from_ip(ip)
 
     if not state:
-        return render_template("error.html", message="State Scheme Not Found")
+        return render_template(
+            "error.html",
+            message="State Scheme Not Found"
+        )
 
     return render_template(
         STATE_TEMPLATE_MAP[state],
