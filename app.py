@@ -7,7 +7,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "kc-secure-key")
 # ----------------------------------
 # STATE → TEMPLATE MAP
 # ----------------------------------
-STATE_TEMPLATE_MAP = STATE_TEMPLATE_MAP = {
+STATE_TEMPLATE_MAP = {
     "andhra pradesh": "scheme_andhra_pradesh.html",
     "assam": "scheme_assam.html",
     "bihar": "scheme_bihar.html",
@@ -39,7 +39,7 @@ def get_client_ip():
     return forwarded.split(",")[0].strip() if forwarded else request.remote_addr
 
 # ----------------------------------
-# IP → STATE DETECTION
+# IP → STATE DETECTION (FIXED)
 # ----------------------------------
 def detect_state_from_ip(ip):
     try:
@@ -51,10 +51,14 @@ def detect_state_from_ip(ip):
         city = (res.get("city") or "").lower()
         region = (res.get("region") or "").lower()
 
-        # NCR override
-        if city in ["delhi", "new delhi", "noida", "gurgaon", "faridabad", "ghaziabad"]:
+        # ✅ NCR override ONLY if region matches NCR states
+        if (
+            city in ["delhi", "new delhi", "noida", "gurgaon", "faridabad", "ghaziabad"]
+            and region in ["delhi", "haryana", "uttar pradesh"]
+        ):
             return "delhi"
 
+        # ✅ Normal state detection
         if region in STATE_TEMPLATE_MAP:
             return region
 
@@ -64,7 +68,7 @@ def detect_state_from_ip(ip):
     return None
 
 # ----------------------------------
-# GPS → STATE DETECTION
+# GPS → STATE DETECTION (PRIMARY)
 # ----------------------------------
 def detect_state_from_gps(lat, lon):
     try:
@@ -108,7 +112,6 @@ def home():
 @app.route("/gps-detect", methods=["POST"])
 def gps_detect():
 
-    # 🔒 Already locked → ignore
     if "locked_state" in session:
         return "", 204
 
@@ -122,7 +125,7 @@ def gps_detect():
     state = detect_state_from_gps(lat, lon)
 
     if state:
-        session["locked_state"] = state  # 🔐 LOCK
+        session["locked_state"] = state
 
     return "", 204
 
@@ -150,7 +153,7 @@ def scheme():
             message="State Scheme Not Found"
         )
 
-    session["locked_state"] = state  # 🔐 LOCK
+    session["locked_state"] = state
 
     return render_template(
         STATE_TEMPLATE_MAP[state],
