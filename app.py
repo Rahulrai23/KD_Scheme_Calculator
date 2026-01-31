@@ -48,8 +48,7 @@ def detect_state(ip):
     except Exception:
         pass
 
-    # ❌ NO DEFAULT — LET UI HANDLE IT
-    return None
+    return None  # ✅ NO DEFAULT
 
 # ----------------------------------
 # HOME
@@ -59,23 +58,30 @@ def home():
     return render_template("detect.html")
 
 # ----------------------------------
-# MAIN SCHEME ENTRY
+# MAIN SCHEME ENTRY (LOCK ONCE)
 # ----------------------------------
 @app.route("/scheme")
 def scheme():
+
+    # 🔒 If state already locked, never change it
     if "locked_state" in session:
         state = session["locked_state"]
-    else:
-        ip = get_client_ip()
-        state = detect_state(ip)
+        return render_template(
+            STATE_TEMPLATE_MAP[state],
+            state_name=state.upper()
+        )
 
-        if not state:
-            return render_template(
-                "select_state.html",
-                error="State Scheme Not Found"
-            )
+    # 🔍 Detect only once
+    ip = get_client_ip()
+    state = detect_state(ip)
 
-        session["locked_state"] = state
+    if not state:
+        return render_template(
+            "select_state.html",
+            error="State Scheme Not Found"
+        )
+
+    session["locked_state"] = state  # 🔐 LOCK STATE
 
     return render_template(
         STATE_TEMPLATE_MAP[state],
@@ -83,16 +89,21 @@ def scheme():
     )
 
 # ----------------------------------
-# MANUAL STATE SET (USER SELECT)
+# MANUAL STATE SET (ONLY ONCE)
 # ----------------------------------
 @app.route("/set-state", methods=["POST"])
 def set_state():
+
+    # 🚫 Block if already locked
+    if "locked_state" in session:
+        abort(403, "State already locked")
+
     state = request.form.get("state")
 
     if state not in STATE_TEMPLATE_MAP:
         abort(403)
 
-    session["locked_state"] = state
+    session["locked_state"] = state  # 🔐 LOCK STATE
 
     return render_template(
         STATE_TEMPLATE_MAP[state],
@@ -111,3 +122,4 @@ def block(anything):
 # ----------------------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
