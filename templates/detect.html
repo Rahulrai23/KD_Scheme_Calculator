@@ -10,22 +10,19 @@
 <script>
 if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
-        function(position) {
+        function(pos) {
             fetch("/gps-detect", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    lat: position.coords.latitude,
-                    lon: position.coords.longitude
+                    lat: pos.coords.latitude,
+                    lon: pos.coords.longitude
                 })
-            }).then(() => {
+            }).finally(() => {
                 window.location.href = "/scheme";
             });
         },
-        function(error) {
-            // ❌ GPS denied → fallback to IP
+        function() {
             window.location.href = "/scheme";
         },
         { timeout: 8000 }
