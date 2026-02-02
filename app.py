@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, abort
+from flask import Flask, render_template, request, abort, make_response
 import requests
 import os
 
@@ -31,7 +31,7 @@ STATE_TEMPLATE_MAP = {
 }
 
 # ----------------------------------
-# DISABLE CACHE (IMPORTANT)
+# DISABLE CACHE
 # ----------------------------------
 @app.after_request
 def disable_cache(resp):
@@ -79,16 +79,13 @@ def detect_state_from_ip(ip):
         city = (res.get("city") or "").lower()
         region = (res.get("region") or "").lower()
 
-        # Delhi safe handling
         if city in ["delhi", "new delhi"] or region == "delhi":
             return "delhi"
 
         if region in STATE_TEMPLATE_MAP:
             return region
-
     except Exception:
         pass
-
     return None
 
 # ----------------------------------
@@ -99,7 +96,7 @@ def home():
     return render_template("detect.html")
 
 # ----------------------------------
-# GPS ENDPOINT (NO SESSION)
+# GPS ENDPOINT (SET SHORT COOKIE)
 # ----------------------------------
 @app.route("/gps-detect", methods=["POST"])
 def gps_detect():
@@ -107,24 +104,31 @@ def gps_detect():
     lat = data.get("lat")
     lon = data.get("lon")
 
+    resp = make_response("", 204)
+
     if lat and lon:
         state = detect_state_from_gps(lat, lon)
         if state:
-            # send state back as response body
-            return state
+            # ⏱ cookie valid for 30 seconds only
+            resp.set_cookie("gps_state", state, max_age=30, httponly=True)
 
-    return ""
+    return resp
 
 # ----------------------------------
-# SCHEME (GPS → IP)
+# SCHEME (GPS COOKIE → IP)
 # ----------------------------------
 @app.route("/scheme")
 def scheme():
 
-    # 1️⃣ Try GPS again if browser sent it recently
-    # (GPS is already attempted before redirect)
+    # 1️⃣ GPS cookie (fresh)
+    gps_state = request.cookies.get("gps_state")
+    if gps_state and gps_state in STATE_TEMPLATE_MAP:
+        return render_template(
+            STATE_TEMPLATE_MAP[gps_state],
+            state_name=gps_state.upper()
+        )
 
-    # 2️⃣ IP fallback (always works if GPS failed)
+    # 2️⃣ IP fallback
     ip = get_client_ip()
     state = detect_state_from_ip(ip)
 
