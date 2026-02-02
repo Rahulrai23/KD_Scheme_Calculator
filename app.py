@@ -71,15 +71,21 @@ def detect_state_from_gps(lat, lon):
 # ----------------------------------
 def detect_state_from_ip(ip):
     try:
-        res = requests.get(
+        resp = requests.get(
             f"https://ipapi.co/{ip}/json/",
             timeout=3
-        ).json()
+        )
+
+        # ❌ If response is not JSON, bail safely
+        if not resp.headers.get("Content-Type", "").startswith("application/json"):
+            return None
+
+        res = resp.json()
 
         city = (res.get("city") or "").lower()
         region = (res.get("region") or "").lower()
 
-        # 🔑 NORMALIZE DELHI / NCR / NCT
+        # 🔑 Normalize Delhi / NCR / NCT
         delhi_aliases = [
             "delhi",
             "new delhi",
@@ -92,16 +98,13 @@ def detect_state_from_ip(ip):
         if city in delhi_aliases or region in delhi_aliases:
             return "delhi"
 
-        # ✅ Normal states
         if region in STATE_TEMPLATE_MAP:
             return region
 
     except Exception as e:
-        print("IP detect error:", e)
-        print("IP DATA:", res)
+        print("IP detection failed:", e)
 
     return None
-
 
 # ----------------------------------
 # HOME
