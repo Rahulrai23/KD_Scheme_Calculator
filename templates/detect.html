@@ -8,29 +8,36 @@
 <h3>Detecting your location…</h3>
 
 <script>
-if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-        function(pos) {
-            // GPS SUCCESS → send to backend
-            fetch("/gps-detect", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    lat: pos.coords.latitude,
-                    lon: pos.coords.longitude
-                })
-            })
-            .finally(() => window.location.href = "/scheme");
-        },
-        function() {
-            // GPS FAILED → fallback to IP
-            window.location.href = "/scheme";
-        },
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 8000 }
-    );
+function showError() {
+  document.body.innerHTML =
+    "<h1>State Scheme Not Found</h1><p>This scheme is available only in supported states.</p>";
+}
+
+if (!navigator.geolocation) {
+  showError();
 } else {
-    // GPS not supported
-    window.location.href = "/scheme";
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      fetch(
+        "https://nominatim.openstreetmap.org/reverse?format=json"
+        + "&lat=" + pos.coords.latitude
+        + "&lon=" + pos.coords.longitude
+      )
+      .then(r => r.json())
+      .then(data => {
+        const state = data?.address?.state;
+        if (!state) {
+          showError();
+          return;
+        }
+        // 🔑 send state explicitly
+        window.location.href = "/scheme?state=" + encodeURIComponent(state);
+      })
+      .catch(showError);
+    },
+    showError,
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
 }
 </script>
 
