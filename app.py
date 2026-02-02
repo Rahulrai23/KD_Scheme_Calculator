@@ -31,7 +31,7 @@ STATE_TEMPLATE_MAP = {
 }
 
 # ----------------------------------
-# DISABLE CACHE
+# DISABLE CACHE (IMPORTANT)
 # ----------------------------------
 @app.after_request
 def disable_cache(resp):
@@ -41,33 +41,40 @@ def disable_cache(resp):
     return resp
 
 # ----------------------------------
-# CLIENT IP
+# CLIENT IP (RENDER SAFE)
 # ----------------------------------
 def get_client_ip():
     forwarded = request.headers.get("X-Forwarded-For", "")
     return forwarded.split(",")[0].strip() if forwarded else request.remote_addr
 
 # ----------------------------------
-# GPS → STATE
+# GPS → STATE (SAFE)
 # ----------------------------------
 def detect_state_from_gps(lat, lon):
     try:
-        res = requests.get(
+        resp = requests.get(
             "https://nominatim.openstreetmap.org/reverse",
             params={"lat": lat, "lon": lon, "format": "json"},
             headers={"User-Agent": "kc-scheme-calculator"},
             timeout=5
-        ).json()
+        )
 
-        state = res.get("address", {}).get("state", "").lower()
+        if not resp.headers.get("Content-Type", "").startswith("application/json"):
+            return None
+
+        data = resp.json()
+        state = (data.get("address", {}).get("state") or "").lower()
+
         if state in STATE_TEMPLATE_MAP:
             return state
+
     except Exception:
         pass
+
     return None
 
 # ----------------------------------
-# IP → STATE (DELHI SAFE)
+# IP → STATE (BULLETPROOF)
 # ----------------------------------
 def detect_state_from_ip(ip):
     try:
@@ -76,33 +83,34 @@ def detect_state_from_ip(ip):
             timeout=3
         )
 
-        # ❌ If response is not JSON, bail safely
         if not resp.headers.get("Content-Type", "").startswith("application/json"):
             return None
 
-        res = resp.json()
+        data = resp.json()
 
-        city = (res.get("city") or "").lower()
-        region = (res.get("region") or "").lower()
+        city = (data.get("city") or "").lower()
+        region = (data.get("region") or "").lower()
 
-        # 🔑 Normalize Delhi / NCR / NCT
+        # 🔑 ALL Delhi / NCR / NCT variations
         delhi_aliases = [
             "delhi",
             "new delhi",
+            "delhi ncr",
             "nct",
+            "nct delhi",
             "nct of delhi",
-            "national capital territory of delhi",
-            "delhi ncr"
+            "national capital territory",
+            "national capital territory of delhi"
         ]
 
-        if city in delhi_aliases or region in delhi_aliases:
+        if any(x in city for x in delhi_aliases) or any(x in region for x in delhi_aliases):
             return "delhi"
 
         if region in STATE_TEMPLATE_MAP:
             return region
 
-    except Exception as e:
-        print("IP detection failed:", e)
+    except Exception:
+        pass
 
     return None
 
@@ -114,33 +122,37 @@ def home():
     return render_template("detect.html")
 
 # ----------------------------------
-# GPS ENDPOINT (SET SHORT COOKIE)
+# GPS ENDPOINT (SHORT-LIVED COOKIE)
 # ----------------------------------
 @app.route("/gps-detect", methods=["POST"])
 def gps_detect():
     data = request.get_json() or {}
-    lat = data.get("lat")
-    lon = data.get("lon")
+    lat, lon = data.get("lat"), data.get("lon")
 
     resp = make_response("", 204)
 
     if lat and lon:
         state = detect_state_from_gps(lat, lon)
         if state:
-            # ⏱ cookie valid for 30 seconds only
-            resp.set_cookie("gps_state", state, max_age=30, httponly=True)
+            resp.set_cookie(
+                "gps_state",
+                state,
+                max_age=30,
+                httponly=True,
+                samesite="Lax"
+            )
 
     return resp
 
 # ----------------------------------
-# SCHEME (GPS COOKIE → IP)
+# SCHEME (GPS → IP → ERROR)
 # ----------------------------------
 @app.route("/scheme")
 def scheme():
 
     # 1️⃣ GPS cookie (fresh)
     gps_state = request.cookies.get("gps_state")
-    if gps_state and gps_state in STATE_TEMPLATE_MAP:
+    if gps_state in STATE_TEMPLATE_MAP:
         return render_template(
             STATE_TEMPLATE_MAP[gps_state],
             state_name=gps_state.upper()
@@ -150,15 +162,16 @@ def scheme():
     ip = get_client_ip()
     state = detect_state_from_ip(ip)
 
-    if not state:
+    if state in STATE_TEMPLATE_MAP:
         return render_template(
-            "error.html",
-            message="State Scheme Not Found"
+            STATE_TEMPLATE_MAP[state],
+            state_name=state.upper()
         )
 
+    # 3️⃣ Final fallback (NO CRASH)
     return render_template(
-        STATE_TEMPLATE_MAP[state],
-        state_name=state.upper()
+        "error.html",
+        message="State Scheme Not Found"
     )
 
 # ----------------------------------
@@ -169,7 +182,10 @@ def block(anything):
     abort(403)
 
 # ----------------------------------
-# RUN
+# RUN (RENDER)
 # ----------------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 5000))
+    )
