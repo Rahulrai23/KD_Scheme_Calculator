@@ -77,38 +77,44 @@ def detect_state_from_gps(lat, lon):
 # IP → STATE (BULLETPROOF)
 # ----------------------------------
 def detect_state_from_ip(ip):
+    # -------- 1️⃣ ipapi.co --------
     try:
-        resp = requests.get(
-            f"https://ipapi.co/{ip}/json/",
-            timeout=3
-        )
+        resp = requests.get(f"https://ipapi.co/{ip}/json/", timeout=3)
+        if resp.headers.get("Content-Type", "").startswith("application/json"):
+            data = resp.json()
+            city = (data.get("city") or "").lower()
+            region = (data.get("region") or "").lower()
 
-        if not resp.headers.get("Content-Type", "").startswith("application/json"):
-            return None
+            delhi_aliases = [
+                "delhi",
+                "new delhi",
+                "delhi ncr",
+                "nct",
+                "nct delhi",
+                "national capital territory",
+                "national capital territory of delhi"
+            ]
 
-        data = resp.json()
+            if any(x in city for x in delhi_aliases) or any(x in region for x in delhi_aliases):
+                return "delhi"
 
-        city = (data.get("city") or "").lower()
-        region = (data.get("region") or "").lower()
+            if region in STATE_TEMPLATE_MAP:
+                return region
+    except Exception:
+        pass
 
-        # 🔑 ALL Delhi / NCR / NCT variations
-        delhi_aliases = [
-            "delhi",
-            "new delhi",
-            "delhi ncr",
-            "nct",
-            "nct delhi",
-            "nct of delhi",
-            "national capital territory",
-            "national capital territory of delhi"
-        ]
+    # -------- 2️⃣ ipinfo.io (FALLBACK) --------
+    try:
+        resp = requests.get(f"https://ipinfo.io/{ip}/json", timeout=3)
+        if resp.headers.get("Content-Type", "").startswith("application/json"):
+            data = resp.json()
+            region = (data.get("region") or "").lower()
 
-        if any(x in city for x in delhi_aliases) or any(x in region for x in delhi_aliases):
-            return "delhi"
+            if "delhi" in region:
+                return "delhi"
 
-        if region in STATE_TEMPLATE_MAP:
-            return region
-
+            if region in STATE_TEMPLATE_MAP:
+                return region
     except Exception:
         pass
 
