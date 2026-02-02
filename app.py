@@ -79,14 +79,29 @@ def detect_state_from_ip(ip):
         city = (res.get("city") or "").lower()
         region = (res.get("region") or "").lower()
 
-        if city in ["delhi", "new delhi"] or region == "delhi":
+        # 🔑 NORMALIZE DELHI / NCR / NCT
+        delhi_aliases = [
+            "delhi",
+            "new delhi",
+            "nct",
+            "nct of delhi",
+            "national capital territory of delhi",
+            "delhi ncr"
+        ]
+
+        if city in delhi_aliases or region in delhi_aliases:
             return "delhi"
 
+        # ✅ Normal states
         if region in STATE_TEMPLATE_MAP:
             return region
-    except Exception:
-        pass
+
+    except Exception as e:
+        print("IP detect error:", e)
+
     return None
+print("IP DATA:", res)
+
 
 # ----------------------------------
 # HOME
