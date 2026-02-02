@@ -155,18 +155,14 @@ def gps_detect():
 # ----------------------------------
 @app.route("/scheme")
 def scheme():
+    raw_state = request.args.get("state", "").lower()
 
-    # 1️⃣ GPS cookie (fresh)
-    gps_state = request.cookies.get("gps_state")
-    if gps_state in STATE_TEMPLATE_MAP:
-        return render_template(
-            STATE_TEMPLATE_MAP[gps_state],
-            state_name=gps_state.upper()
-        )
+    # normalize
+    state = raw_state.strip()
 
-    # 2️⃣ IP fallback
-    ip = get_client_ip()
-    state = detect_state_from_ip(ip)
+    # Delhi handling
+    if "delhi" in state or "nct" in state:
+        state = "delhi"
 
     if state in STATE_TEMPLATE_MAP:
         return render_template(
@@ -174,7 +170,6 @@ def scheme():
             state_name=state.upper()
         )
 
-    # 3️⃣ Final fallback (NO CRASH)
     return render_template(
         "error.html",
         message="State Scheme Not Found"
