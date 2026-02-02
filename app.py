@@ -98,9 +98,9 @@ def detect_state_from_ip(ip):
 
     except Exception as e:
         print("IP detect error:", e)
+        print("IP DATA:", res)
 
     return None
-print("IP DATA:", res)
 
 
 # ----------------------------------
