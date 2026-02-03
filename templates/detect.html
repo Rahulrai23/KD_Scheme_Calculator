@@ -3,6 +3,7 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>KC Scheme Calculator</title>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -18,7 +19,11 @@
       border-radius: 6px;
       cursor: pointer;
     }
-    button:hover {
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    button:hover:not(:disabled) {
       background: #d66a22;
     }
   </style>
@@ -28,10 +33,15 @@
 <h2>KC Scheme Calculator</h2>
 <p>Detecting your location to show applicable scheme</p>
 
-<button onclick="detect()">Continue</button>
+<button id="btn" onclick="detect()">Continue</button>
 
 <script>
 function detect() {
+  const btn = document.getElementById("btn");
+  btn.disabled = true;
+  btn.innerText = "Detecting...";
+
+  // If browser doesn't support GPS
   if (!navigator.geolocation) {
     window.location.href = "/scheme";
     return;
@@ -47,15 +57,19 @@ function detect() {
           lon: pos.coords.longitude
         })
       }).finally(() => {
-        // Always continue to scheme
+        // Always continue after GPS attempt
         window.location.href = "/scheme";
       });
     },
     function () {
-      // Permission denied → fallback to IP
+      // GPS denied / failed → backend will handle fallback
       window.location.href = "/scheme";
     },
-    { timeout: 5000 }
+    {
+      enableHighAccuracy: true,
+      timeout: 7000,
+      maximumAge: 0
+    }
   );
 }
 </script>
