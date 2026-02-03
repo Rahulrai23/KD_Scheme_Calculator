@@ -26,13 +26,37 @@
 <body>
 
 <h2>KC Scheme Calculator</h2>
-<p>Click below to view your applicable scheme</p>
+<p>Detecting your location to show applicable scheme</p>
 
-<button onclick="go()">Continue</button>
+<button onclick="detect()">Continue</button>
 
 <script>
-function go() {
-  window.location.href = "/scheme";
+function detect() {
+  if (!navigator.geolocation) {
+    window.location.href = "/scheme";
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    function (pos) {
+      fetch("/gps-detect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude
+        })
+      }).finally(() => {
+        // Always continue to scheme
+        window.location.href = "/scheme";
+      });
+    },
+    function () {
+      // Permission denied → fallback to IP
+      window.location.href = "/scheme";
+    },
+    { timeout: 5000 }
+  );
 }
 </script>
 
