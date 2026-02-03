@@ -31,16 +31,20 @@ STATE_TEMPLATE_MAP = {
     "west bengal": "scheme_west_bengal.html"
 }
 
+DEFAULT_STATE = "delhi"   # FINAL SAFETY NET
+
 # ----------------------------------
-# NO GLOBAL CACHE (CRITICAL)
+# NO CACHE
 # ----------------------------------
 @app.after_request
 def disable_cache(resp):
-    resp.headers["Cache-Control"] = "no-store"
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
     return resp
 
 # ----------------------------------
-# HELPERS
+# NORMALIZE STATE
 # ----------------------------------
 def normalize_state(raw):
     if not raw:
@@ -50,39 +54,39 @@ def normalize_state(raw):
     raw = re.sub(r"^state of ", "", raw)
     raw = re.sub(r"^national capital territory of ", "", raw)
 
-    if "delhi" in raw:
+    if "delhi" in raw or "nct" in raw:
         return "delhi"
 
     return raw if raw in STATE_TEMPLATE_MAP else None
 
-def get_client_ip():
-    forwarded = request.headers.get("X-Forwarded-For", "")
-    return forwarded.split(",")[0].strip() if forwarded else request.remote_addr
-
 # ----------------------------------
-# GPS → STATE (ONLY SOURCE WE CACHE)
+# GPS → STATE (PRIMARY)
 # ----------------------------------
 def detect_state_from_gps(lat, lon):
     try:
-        r = requests.get(
+        resp = requests.get(
             "https://nominatim.openstreetmap.org/reverse",
             params={"lat": lat, "lon": lon, "format": "json"},
             headers={"User-Agent": "kc-scheme-calculator"},
             timeout=5
         )
-        data = r.json()
+        data = resp.json()
         return normalize_state(data.get("address", {}).get("state"))
-    except:
+    except Exception:
         return None
 
 # ----------------------------------
-# IP → STATE (NO CACHE)
+# IP → STATE (BEST EFFORT ONLY)
 # ----------------------------------
-def detect_state_from_ip(ip):
+def detect_state_from_ip():
     try:
-        r = requests.get(f"https://ipapi.co/{ip}/json/", timeout=3).json()
-        return normalize_state(r.get("region"))
-    except:
+        ip = request.headers.get("X-Forwarded-For", "").split(",")[0]
+        if not ip:
+            return None
+
+        resp = requests.get(f"https://ipinfo.io/{ip}/json", timeout=3).json()
+        return normalize_state(resp.get("region"))
+    except Exception:
         return None
 
 # ----------------------------------
@@ -93,7 +97,7 @@ def home():
     return render_template("detect.html")
 
 # ----------------------------------
-# GPS COOKIE (SHORT LIVED, SAFE)
+# GPS CAPTURE
 # ----------------------------------
 @app.route("/gps-detect", methods=["POST"])
 def gps_detect():
@@ -101,13 +105,13 @@ def gps_detect():
     lat, lon = data.get("lat"), data.get("lon")
 
     resp = make_response("", 204)
-    state = detect_state_from_gps(lat, lon) if lat and lon else None
 
+    state = detect_state_from_gps(lat, lon) if lat and lon else None
     if state:
         resp.set_cookie(
             "gps_state",
             state,
-            max_age=120,   # ⏱ 2 minutes only
+            max_age=300,
             path="/",
             samesite="Lax"
         )
@@ -115,24 +119,25 @@ def gps_detect():
     return resp
 
 # ----------------------------------
-# SCHEME (GPS → IP)
+# SCHEME (FINAL)
 # ----------------------------------
 @app.route("/scheme")
 def scheme():
-    # 1️⃣ GPS cookie (cached per user)
+    # 1️⃣ GPS cookie
     state = normalize_state(request.cookies.get("gps_state"))
 
-    # 2️⃣ IP fallback (NOT cached)
+    # 2️⃣ IP fallback
     if not state:
-        state = detect_state_from_ip(get_client_ip())
+        state = detect_state_from_ip()
 
-    if state in STATE_TEMPLATE_MAP:
-        return render_template(
-            STATE_TEMPLATE_MAP[state],
-            state_name=state.upper()
-        )
+    # 3️⃣ Final fallback
+    if not state:
+        state = DEFAULT_STATE
 
-    return render_template("error.html", message="Scheme not available")
+    return render_template(
+        STATE_TEMPLATE_MAP[state],
+        state_name=state.upper()
+    )
 
 # ----------------------------------
 # BLOCK URL TAMPERING
@@ -145,4 +150,7 @@ def block(anything):
 # RUN
 # ----------------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 5000))
+    )
