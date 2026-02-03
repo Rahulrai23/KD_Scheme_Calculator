@@ -1,73 +1,64 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>KC Scheme Calculator</title>
+
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      padding: 40px;
+      padding: 40px 20px;
       background: #f6f7f9;
     }
+
+    h2 {
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 15px;
+      color: #444;
+      line-height: 1.4;
+    }
+
     button {
-      padding: 14px 30px;
+      padding: 14px 36px;
       font-size: 16px;
       background: #ed7d31;
-      color: white;
+      color: #fff;
       border: none;
       border-radius: 6px;
       cursor: pointer;
-      margin-top: 15px;
+      margin-top: 20px;
     }
+
     button:hover {
       background: #d66a22;
     }
-    select {
-      padding: 12px;
-      font-size: 15px;
-      margin-top: 20px;
-      width: 260px;
-    }
+
     .note {
       font-size: 13px;
-      color: #555;
-      margin-top: 15px;
+      color: #666;
+      margin-top: 18px;
     }
   </style>
 </head>
 <body>
 
-<h2>KC Scheme Calculator</h2>
-<p>We’ll try to detect your location to show the correct scheme.</p>
+  <h2>KC Scheme Calculator</h2>
 
-<button onclick="detect()">Detect Automatically</button>
+  <p>
+    We will automatically detect your location<br>
+    to show the applicable scheme.
+  </p>
 
-<div class="note">or select your state manually</div>
+  <button onclick="detect()">Continue</button>
 
-<select id="stateSelect" onchange="manualGo()">
-  <option value="">-- Select State --</option>
-  <option value="andhra pradesh">Andhra Pradesh</option>
-  <option value="assam">Assam</option>
-  <option value="bihar">Bihar</option>
-  <option value="chhattisgarh">Chhattisgarh</option>
-  <option value="delhi">Delhi NCR</option>
-  <option value="gujarat">Gujarat</option>
-  <option value="haryana">Haryana</option>
-  <option value="jharkhand">Jharkhand</option>
-  <option value="karnataka">Karnataka</option>
-  <option value="kerala">Kerala</option>
-  <option value="madhya pradesh">Madhya Pradesh</option>
-  <option value="maharashtra">Maharashtra</option>
-  <option value="odisha">Odisha</option>
-  <option value="punjab">Punjab</option>
-  <option value="rajasthan">Rajasthan</option>
-  <option value="tamil nadu">Tamil Nadu</option>
-  <option value="telangana">Telangana</option>
-  <option value="uttar pradesh">Uttar Pradesh</option>
-  <option value="uttarakhand">Uttarakhand</option>
-  <option value="west bengal">West Bengal</option>
-</select>
+  <div class="note">
+    If location detection fails,<br>
+    the default Delhi NCR scheme will be shown.
+  </div>
 
 <script>
 function detect() {
@@ -90,18 +81,11 @@ function detect() {
       });
     },
     function () {
-      // GPS blocked → continue without it
+      // GPS denied or failed → fallback handled by backend
       window.location.href = "/scheme";
     },
     { timeout: 7000 }
   );
-}
-
-function manualGo() {
-  const state = document.getElementById("stateSelect").value;
-  if (state) {
-    window.location.href = "/scheme?state=" + encodeURIComponent(state);
-  }
 }
 </script>
 
