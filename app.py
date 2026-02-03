@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, abort, make_response
 import requests
 import os
+import re
 
 app = Flask(__name__)
 
@@ -31,7 +32,7 @@ STATE_TEMPLATE_MAP = {
 }
 
 # ----------------------------------
-# DISABLE CACHE (IMPORTANT)
+# NO CACHE
 # ----------------------------------
 @app.after_request
 def disable_cache(resp):
@@ -41,8 +42,24 @@ def disable_cache(resp):
     return resp
 
 # ----------------------------------
-# CLIENT IP (RENDER SAFE)
+# HELPERS
 # ----------------------------------
+def normalize_state(raw):
+    if not raw:
+        return None
+
+    raw = raw.lower().strip()
+
+    raw = re.sub(r"^state of ", "", raw)
+    raw = re.sub(r"^national capital territory of ", "", raw)
+    raw = raw.replace("nct of", "").strip()
+
+    if "delhi" in raw:
+        return "delhi"
+
+    return raw if raw in STATE_TEMPLATE_MAP else None
+
+
 def get_client_ip():
     forwarded = request.headers.get("X-Forwarded-For", "")
     return forwarded.split(",")[0].strip() if forwarded else request.remote_addr
@@ -59,24 +76,18 @@ def detect_state_from_gps(lat, lon):
             timeout=5
         )
         data = resp.json()
-        state = (data.get("address", {}).get("state") or "").lower()
-        return state if state in STATE_TEMPLATE_MAP else None
+        raw_state = data.get("address", {}).get("state")
+        return normalize_state(raw_state)
     except Exception:
         return None
 
 # ----------------------------------
-# IP → STATE
+# IP → STATE (FINAL FALLBACK)
 # ----------------------------------
 def detect_state_from_ip(ip):
     try:
         resp = requests.get(f"https://ipapi.co/{ip}/json/", timeout=3).json()
-        city = (resp.get("city") or "").lower()
-        region = (resp.get("region") or "").lower()
-
-        if "delhi" in city or "delhi" in region:
-            return "delhi"
-
-        return region if region in STATE_TEMPLATE_MAP else None
+        return normalize_state(resp.get("region"))
     except Exception:
         return None
 
@@ -88,7 +99,7 @@ def home():
     return render_template("detect.html")
 
 # ----------------------------------
-# GPS ENDPOINT (SHORT COOKIE)
+# GPS ENDPOINT
 # ----------------------------------
 @app.route("/gps-detect", methods=["POST"])
 def gps_detect():
@@ -96,41 +107,32 @@ def gps_detect():
     lat, lon = data.get("lat"), data.get("lon")
 
     resp = make_response("", 204)
-    state = detect_state_from_gps(lat, lon) if lat and lon else None
 
+    state = detect_state_from_gps(lat, lon) if lat and lon else None
     if state:
         resp.set_cookie(
             "gps_state",
             state,
-            max_age=30,
-            httponly=True,
+            max_age=60,
+            path="/",
             samesite="Lax"
         )
 
     return resp
 
 # ----------------------------------
-# SCHEME RESOLUTION (GPS → IP → PARAM)
+# SCHEME
 # ----------------------------------
 @app.route("/scheme")
 def scheme():
-    # 1️⃣ GPS cookie (highest priority)
-    state = (request.cookies.get("gps_state") or "").lower()
+    # 1️⃣ GPS cookie
+    state = normalize_state(request.cookies.get("gps_state"))
 
     # 2️⃣ IP fallback
     if not state:
-        state = detect_state_from_ip(get_client_ip()) or ""
+        state = detect_state_from_ip(get_client_ip())
 
-    # 3️⃣ Explicit query param fallback (manual selection)
-    if not state:
-        raw = request.args.get("state", "").lower()
-        if "delhi" in raw or "nct" in raw:
-            state = "delhi"
-        elif raw in STATE_TEMPLATE_MAP:
-            state = raw
-
-    # FINAL CHECK
-    if state in STATE_TEMPLATE_MAP:
+    if state and state in STATE_TEMPLATE_MAP:
         return render_template(
             STATE_TEMPLATE_MAP[state],
             state_name=state.upper()
