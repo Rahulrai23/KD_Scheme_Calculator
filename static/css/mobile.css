@@ -1,24 +1,6 @@
-/* =========================================
-   KC Scheme Calculator – Mobile Responsive
-   Works for ALL states
-   ========================================= */
-
-/* Default small improvements (all devices) */
-* {
-  box-sizing: border-box;
-}
-
-input {
-  max-width: 100%;
-}
-
-button {
-  cursor: pointer;
-}
-
-/* =========================
-   📱 MOBILE & TABLET FIX
-   ========================= */
+/* ===============================
+   MOBILE FRIENDLY UI (≤768px)
+   =============================== */
 @media (max-width: 768px) {
 
   body {
@@ -26,15 +8,15 @@ button {
   }
 
   h2 {
-    font-size: 18px !important;
+    font-size: 18px;
     line-height: 1.3;
     margin-bottom: 12px;
   }
 
-  /* Stack columns vertically */
+  /* Stack columns */
   .layout-wrapper {
-    flex-direction: column !important;
-    gap: 16px;
+    flex-direction: column;
+    gap: 12px;
   }
 
   .column-left,
@@ -42,50 +24,53 @@ button {
     width: 100% !important;
   }
 
-  /* Tables readable on mobile */
-  table {
-    font-size: 14px;
-  }
-
-  th, td {
-    padding: 6px;
-  }
-
-  /* Inputs touch-friendly */
-  input {
-    width: 100% !important;
-    font-size: 16px;
-    padding: 8px;
-  }
-
-  /* Buttons full width */
-  button {
-    width: 100%;
-    padding: 14px;
-    font-size: 16px;
-    border-radius: 6px;
-  }
-
-  /* Center results section */
-  .results-area {
-    margin: 10px auto;
-  }
-}
-
-/* =========================
-   📱 VERY SMALL PHONES
-   ========================= */
-@media (max-width: 420px) {
-
-  h2 {
-    font-size: 16px !important;
-  }
-
+  /* Tables */
   table {
     font-size: 13px;
   }
 
   th, td {
-    padding: 5px;
+    padding: 6px 4px;
+  }
+
+  /* Inputs */
+  input[type="number"] {
+    width: 95%;
+    padding: 8px;
+    font-size: 15px;
+  }
+
+  /* Buttons */
+  button {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+  }
+
+  .btn-container {
+    margin: 20px 0;
+  }
+
+  /* Result table spacing */
+  .results-area table {
+    margin-top: 10px;
+  }
+}
+
+/* ===============================
+   EXTRA SMALL DEVICES (≤420px)
+   =============================== */
+@media (max-width: 420px) {
+
+  h2 {
+    font-size: 16px;
+  }
+
+  table {
+    font-size: 12px;
+  }
+
+  input[type="number"] {
+    font-size: 14px;
   }
 }
