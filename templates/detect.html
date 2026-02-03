@@ -9,8 +9,7 @@
 
 <script>
 function showError() {
-  document.body.innerHTML =
-    "<h1>State Scheme Not Found</h1><p>This scheme is available only in supported states.</p>";
+  window.location.href = "/scheme";
 }
 
 if (!navigator.geolocation) {
@@ -18,22 +17,17 @@ if (!navigator.geolocation) {
 } else {
   navigator.geolocation.getCurrentPosition(
     function(pos) {
-      fetch(
-        "https://nominatim.openstreetmap.org/reverse?format=json"
-        + "&lat=" + pos.coords.latitude
-        + "&lon=" + pos.coords.longitude
-      )
-      .then(r => r.json())
-      .then(data => {
-        const state = data?.address?.state;
-        if (!state) {
-          showError();
-          return;
-        }
-        // 🔑 send state explicitly
-        window.location.href = "/scheme?state=" + encodeURIComponent(state);
+      fetch("/gps-detect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude
+        })
       })
-      .catch(showError);
+      .finally(() => {
+        window.location.href = "/scheme";
+      });
     },
     showError,
     { enableHighAccuracy: true, timeout: 10000 }

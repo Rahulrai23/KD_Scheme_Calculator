@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, abort, make_response
+import ipaddress
 import requests
 import os
 
@@ -48,6 +49,20 @@ def get_client_ip():
     return forwarded.split(",")[0].strip() if forwarded else request.remote_addr
 
 # ----------------------------------
+# NORMALIZE STATE
+# ----------------------------------
+def normalize_state(raw_state):
+    state = (raw_state or "").strip().lower()
+
+    if not state:
+        return ""
+
+    if "delhi" in state or "nct" in state:
+        return "delhi"
+
+    return state
+
+# ----------------------------------
 # GPS → STATE (SAFE)
 # ----------------------------------
 def detect_state_from_gps(lat, lon):
@@ -63,7 +78,7 @@ def detect_state_from_gps(lat, lon):
             return None
 
         data = resp.json()
-        state = (data.get("address", {}).get("state") or "").lower()
+        state = normalize_state(data.get("address", {}).get("state"))
 
         if state in STATE_TEMPLATE_MAP:
             return state
@@ -77,26 +92,20 @@ def detect_state_from_gps(lat, lon):
 # IP → STATE (BULLETPROOF)
 # ----------------------------------
 def detect_state_from_ip(ip):
+    ip_is_private = False
+    if ip:
+        try:
+            ip_is_private = ipaddress.ip_address(ip).is_private
+        except ValueError:
+            ip_is_private = False
+
     # -------- 1️⃣ ipapi.co --------
     try:
-        resp = requests.get(f"https://ipapi.co/{ip}/json/", timeout=3)
+        ipapi_url = "https://ipapi.co/json/" if ip_is_private or not ip else f"https://ipapi.co/{ip}/json/"
+        resp = requests.get(ipapi_url, timeout=3)
         if resp.headers.get("Content-Type", "").startswith("application/json"):
             data = resp.json()
-            city = (data.get("city") or "").lower()
-            region = (data.get("region") or "").lower()
-
-            delhi_aliases = [
-                "delhi",
-                "new delhi",
-                "delhi ncr",
-                "nct",
-                "nct delhi",
-                "national capital territory",
-                "national capital territory of delhi"
-            ]
-
-            if any(x in city for x in delhi_aliases) or any(x in region for x in delhi_aliases):
-                return "delhi"
+            region = normalize_state(data.get("region"))
 
             if region in STATE_TEMPLATE_MAP:
                 return region
@@ -105,13 +114,11 @@ def detect_state_from_ip(ip):
 
     # -------- 2️⃣ ipinfo.io (FALLBACK) --------
     try:
-        resp = requests.get(f"https://ipinfo.io/{ip}/json", timeout=3)
+        ipinfo_url = "https://ipinfo.io/json" if ip_is_private or not ip else f"https://ipinfo.io/{ip}/json"
+        resp = requests.get(ipinfo_url, timeout=3)
         if resp.headers.get("Content-Type", "").startswith("application/json"):
             data = resp.json()
-            region = (data.get("region") or "").lower()
-
-            if "delhi" in region:
-                return "delhi"
+            region = normalize_state(data.get("region"))
 
             if region in STATE_TEMPLATE_MAP:
                 return region
@@ -155,20 +162,26 @@ def gps_detect():
 # ----------------------------------
 @app.route("/scheme")
 def scheme():
-    raw_state = request.args.get("state", "").lower()
+    candidates = []
 
-    # normalize
-    state = raw_state.strip()
+    raw_state = normalize_state(request.args.get("state"))
+    if raw_state:
+        candidates.append(raw_state)
 
-    # Delhi handling
-    if "delhi" in state or "nct" in state:
-        state = "delhi"
+    gps_state = normalize_state(request.cookies.get("gps_state"))
+    if gps_state:
+        candidates.append(gps_state)
 
-    if state in STATE_TEMPLATE_MAP:
-        return render_template(
-            STATE_TEMPLATE_MAP[state],
-            state_name=state.upper()
-        )
+    ip_state = detect_state_from_ip(get_client_ip())
+    if ip_state:
+        candidates.append(ip_state)
+
+    for candidate in candidates:
+        if candidate in STATE_TEMPLATE_MAP:
+            return render_template(
+                STATE_TEMPLATE_MAP[candidate],
+                state_name=candidate.upper()
+            )
 
     return render_template(
         "error.html",
