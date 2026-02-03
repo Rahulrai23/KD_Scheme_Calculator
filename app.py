@@ -1,10 +1,9 @@
 from flask import Flask, render_template, request, abort, make_response
-import ipaddress
 import requests
 import os
- 
+
 app = Flask(__name__)
- 
+
 # ----------------------------------
 # STATE → TEMPLATE MAP
 # ----------------------------------
@@ -49,21 +48,7 @@ def get_client_ip():
     return forwarded.split(",")[0].strip() if forwarded else request.remote_addr
 
 # ----------------------------------
-# NORMALIZE STATE
-# ----------------------------------
-def normalize_state(raw_state):
-    state = (raw_state or "").strip().lower()
-
-    if not state:
-        return ""
-
-    if "delhi" in state or "nct" in state:
-        return "delhi"
-
-    return state
-
-# ----------------------------------
-# GPS → STATE (SAFE)
+# GPS → STATE
 # ----------------------------------
 def detect_state_from_gps(lat, lon):
     try:
@@ -73,133 +58,101 @@ def detect_state_from_gps(lat, lon):
             headers={"User-Agent": "kc-scheme-calculator"},
             timeout=5
         )
-
-        if not resp.headers.get("Content-Type", "").startswith("application/json"):
-            return None
-
         data = resp.json()
-            state = normalize_state(data.get("address", {}).get("state"))
-
-        if state in STATE_TEMPLATE_MAP:
-            return state
-
+        state = (data.get("address", {}).get("state") or "").lower()
+        return state if state in STATE_TEMPLATE_MAP else None
     except Exception:
-        pass
-
-    return None
+        return None
 
 # ----------------------------------
-# IP → STATE (BULLETPROOF)
+# IP → STATE
 # ----------------------------------
 def detect_state_from_ip(ip):
-    ip_is_private = False
-    if ip:
-        try:
-            ip_is_private = ipaddress.ip_address(ip).is_private
-        except ValueError:
-            ip_is_private = False
-
-    # -------- 1️⃣ ipapi.co --------
     try:
-        ipapi_url = "https://ipapi.co/json/" if ip_is_private or not ip else f"https://ipapi.co/{ip}/json/"
-        resp = requests.get(ipapi_url, timeout=3)
-        if resp.headers.get("Content-Type", "").startswith("application/json"):
-            data = resp.json()
-            region = normalize_state(data.get("region"))
- 
-             if region in STATE_TEMPLATE_MAP:
-                 return region
-     except Exception:
-         pass
- 
-     # -------- 2️⃣ ipinfo.io (FALLBACK) --------
-     try:
-        ipinfo_url = "https://ipinfo.io/json" if ip_is_private or not ip else f"https://ipinfo.io/{ip}/json"
-        resp = requests.get(ipinfo_url, timeout=3)
-         if resp.headers.get("Content-Type", "").startswith("application/json"):
-             data = resp.json()
-            region = normalize_state(data.get("region"))
+        resp = requests.get(f"https://ipapi.co/{ip}/json/", timeout=3).json()
+        city = (resp.get("city") or "").lower()
+        region = (resp.get("region") or "").lower()
 
-            if region in STATE_TEMPLATE_MAP:
-                return region
-     except Exception:
-         pass
- 
-     return None
- 
- # ----------------------------------
- # HOME
- # ----------------------------------
- @app.route("/")
- def home():
-     return render_template("detect.html")
- 
- # ----------------------------------
- # GPS ENDPOINT (SHORT-LIVED COOKIE)
- # ----------------------------------
- @app.route("/gps-detect", methods=["POST"])
- def gps_detect():
-     data = request.get_json() or {}
-     lat, lon = data.get("lat"), data.get("lon")
- 
-     resp = make_response("", 204)
- 
-     if lat and lon:
-         state = detect_state_from_gps(lat, lon)
-         if state:
-             resp.set_cookie(
-                 "gps_state",
-                 state,
-                 max_age=30,
-                 httponly=True,
-                 samesite="Lax"
-             )
- 
-     return resp
- 
- # ----------------------------------
- # SCHEME (GPS → IP → ERROR)
- # ----------------------------------
- @app.route("/scheme")
- def scheme():
-    candidates = []
- 
-    raw_state = normalize_state(request.args.get("state"))
-    if raw_state:
-        candidates.append(raw_state)
- 
-    gps_state = normalize_state(request.cookies.get("gps_state"))
-    if gps_state:
-        candidates.append(gps_state)
- 
-    ip_state = detect_state_from_ip(get_client_ip())
-    if ip_state:
-        candidates.append(ip_state)
+        if "delhi" in city or "delhi" in region:
+            return "delhi"
 
-    for candidate in candidates:
-        if candidate in STATE_TEMPLATE_MAP:
-            return render_template(
-                STATE_TEMPLATE_MAP[candidate],
-                state_name=candidate.upper()
-            )
- 
-     return render_template(
-         "error.html",
-         message="State Scheme Not Found"
-     )
- 
- # ----------------------------------
- # BLOCK URL TAMPERING
- # ----------------------------------
- @app.route("/scheme/<path:anything>")
- def block(anything):
-     abort(403)
- 
- # ----------------------------------
- # RUN (RENDER)
- # ----------------------------------
- if __name__ == "__main__":
-     app.run(
-         host="0.0.0.0",
-         port=int(os.environ.get("PORT", 5000))
-     )
+        return region if region in STATE_TEMPLATE_MAP else None
+    except Exception:
+        return None
+
+# ----------------------------------
+# HOME
+# ----------------------------------
+@app.route("/")
+def home():
+    return render_template("detect.html")
+
+# ----------------------------------
+# GPS ENDPOINT (SHORT COOKIE)
+# ----------------------------------
+@app.route("/gps-detect", methods=["POST"])
+def gps_detect():
+    data = request.get_json() or {}
+    lat, lon = data.get("lat"), data.get("lon")
+
+    resp = make_response("", 204)
+    state = detect_state_from_gps(lat, lon) if lat and lon else None
+
+    if state:
+        resp.set_cookie(
+            "gps_state",
+            state,
+            max_age=30,
+            httponly=True,
+            samesite="Lax"
+        )
+
+    return resp
+
+# ----------------------------------
+# SCHEME RESOLUTION (GPS → IP → PARAM)
+# ----------------------------------
+@app.route("/scheme")
+def scheme():
+    # 1️⃣ GPS cookie (highest priority)
+    state = (request.cookies.get("gps_state") or "").lower()
+
+    # 2️⃣ IP fallback
+    if not state:
+        state = detect_state_from_ip(get_client_ip()) or ""
+
+    # 3️⃣ Explicit query param fallback (manual selection)
+    if not state:
+        raw = request.args.get("state", "").lower()
+        if "delhi" in raw or "nct" in raw:
+            state = "delhi"
+        elif raw in STATE_TEMPLATE_MAP:
+            state = raw
+
+    # FINAL CHECK
+    if state in STATE_TEMPLATE_MAP:
+        return render_template(
+            STATE_TEMPLATE_MAP[state],
+            state_name=state.upper()
+        )
+
+    return render_template(
+        "error.html",
+        message="State Scheme Not Found"
+    )
+
+# ----------------------------------
+# BLOCK URL TAMPERING
+# ----------------------------------
+@app.route("/scheme/<path:anything>")
+def block(anything):
+    abort(403)
+
+# ----------------------------------
+# RUN
+# ----------------------------------
+if __name__ == "__main__":
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 5000))
+    )
