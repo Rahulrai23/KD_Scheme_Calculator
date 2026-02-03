@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, abort, make_response
+import ipaddress
 import requests
 import os
 import re
@@ -32,7 +33,7 @@ STATE_TEMPLATE_MAP = {
 }
 
 # ----------------------------------
-# NO CACHE
+# DISABLE CACHE (IMPORTANT)
 # ----------------------------------
 @app.after_request
 def disable_cache(resp):
@@ -42,7 +43,7 @@ def disable_cache(resp):
     return resp
 
 # ----------------------------------
-# HELPERS
+# NORMALIZE STATE NAME
 # ----------------------------------
 def normalize_state(raw):
     if not raw:
@@ -58,11 +59,6 @@ def normalize_state(raw):
         return "delhi"
 
     return raw if raw in STATE_TEMPLATE_MAP else None
-
-
-def get_client_ip():
-    forwarded = request.headers.get("X-Forwarded-For", "")
-    return forwarded.split(",")[0].strip() if forwarded else request.remote_addr
 
 # ----------------------------------
 # GPS → STATE
@@ -82,16 +78,6 @@ def detect_state_from_gps(lat, lon):
         return None
 
 # ----------------------------------
-# IP → STATE (FINAL FALLBACK)
-# ----------------------------------
-def detect_state_from_ip(ip):
-    try:
-        resp = requests.get(f"https://ipapi.co/{ip}/json/", timeout=3).json()
-        return normalize_state(resp.get("region"))
-    except Exception:
-        return None
-
-# ----------------------------------
 # HOME
 # ----------------------------------
 @app.route("/")
@@ -99,7 +85,7 @@ def home():
     return render_template("detect.html")
 
 # ----------------------------------
-# GPS ENDPOINT
+# GPS ENDPOINT (COOKIE)
 # ----------------------------------
 @app.route("/gps-detect", methods=["POST"])
 def gps_detect():
@@ -113,7 +99,7 @@ def gps_detect():
         resp.set_cookie(
             "gps_state",
             state,
-            max_age=60,
+            max_age=120,
             path="/",
             samesite="Lax"
         )
@@ -121,16 +107,17 @@ def gps_detect():
     return resp
 
 # ----------------------------------
-# SCHEME
+# SCHEME (GPS → QUERY PARAM)
 # ----------------------------------
 @app.route("/scheme")
 def scheme():
-    # 1️⃣ GPS cookie
+    # 1️⃣ GPS cookie (PRIMARY)
     state = normalize_state(request.cookies.get("gps_state"))
 
-    # 2️⃣ IP fallback
+    # 2️⃣ Manual / fallback (?state=)
     if not state:
-        state = detect_state_from_ip(get_client_ip())
+        raw = request.args.get("state")
+        state = normalize_state(raw)
 
     if state and state in STATE_TEMPLATE_MAP:
         return render_template(
