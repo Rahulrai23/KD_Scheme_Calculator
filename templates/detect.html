@@ -1,9 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>KC Scheme Calculator</title>
-
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -11,54 +10,36 @@
       padding: 40px 20px;
       background: #f6f7f9;
     }
-
-    h2 {
-      margin-bottom: 10px;
-    }
-
-    p {
-      font-size: 15px;
-      color: #444;
-      line-height: 1.4;
-    }
-
     button {
       padding: 14px 36px;
       font-size: 16px;
       background: #ed7d31;
-      color: #fff;
+      color: white;
       border: none;
       border-radius: 6px;
       cursor: pointer;
       margin-top: 20px;
     }
-
     button:hover {
       background: #d66a22;
     }
-
     .note {
       font-size: 13px;
-      color: #666;
-      margin-top: 18px;
+      color: #555;
+      margin-top: 15px;
     }
   </style>
 </head>
 <body>
 
-  <h2>KC Scheme Calculator</h2>
+<h2>KC Scheme Calculator</h2>
+<p>We’ll automatically detect your location<br>to show the correct scheme.</p>
 
-  <p>
-    We will automatically detect your location<br>
-    to show the applicable scheme.
-  </p>
+<button onclick="detect()">Continue</button>
 
-  <button onclick="detect()">Continue</button>
-
-  <div class="note">
-    If location detection fails,<br>
-    the default Delhi NCR scheme will be shown.
-  </div>
+<div class="note">
+  Please allow location access when prompted.
+</div>
 
 <script>
 function detect() {
@@ -81,10 +62,9 @@ function detect() {
       });
     },
     function () {
-      // GPS denied or failed → fallback handled by backend
       window.location.href = "/scheme";
     },
-    { timeout: 7000 }
+    { timeout: 8000 }
   );
 }
 </script>
