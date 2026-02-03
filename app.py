@@ -1,133 +1,111 @@
-diff --git a/app.py b/app.py
-index d09b2e5a74a1d5ae2c8317a430104dace2e05d00..3df00fd9bf2ba9390ba64a05d1ffd0dfdb030a22 100644
---- a/app.py
-+++ b/app.py
-@@ -1,192 +1,205 @@
- from flask import Flask, render_template, request, abort, make_response
-+import ipaddress
- import requests
- import os
+from flask import Flask, render_template, request, abort, make_response
+import ipaddress
+import requests
+import os
  
- app = Flask(__name__)
+app = Flask(__name__)
  
- # ----------------------------------
- # STATE → TEMPLATE MAP
- # ----------------------------------
- STATE_TEMPLATE_MAP = {
-     "andhra pradesh": "scheme_andhra_pradesh.html",
-     "assam": "scheme_assam.html",
-     "bihar": "scheme_bihar.html",
-     "chhattisgarh": "scheme_chhattisgarh.html",
-     "delhi": "scheme_delhi_ncr.html",
-     "gujarat": "scheme_gujarat.html",
-     "haryana": "scheme_haryana.html",
-     "jharkhand": "scheme_jharkhand.html",
-     "karnataka": "scheme_karnataka.html",
-     "kerala": "scheme_kerala.html",
-     "madhya pradesh": "scheme_madhya_pradesh.html",
-     "maharashtra": "scheme_rest_of_maharashtra.html",
-     "odisha": "scheme_odisha.html",
-     "punjab": "scheme_punjab.html",
-     "rajasthan": "scheme_rajasthan.html",
-     "tamil nadu": "scheme_tamil_nadu.html",
-     "telangana": "scheme_telangana.html",
-     "uttar pradesh": "scheme_uttar_pradesh.html",
-     "uttarakhand": "scheme_uttarakhand.html",
-     "west bengal": "scheme_west_bengal.html"
- }
- 
- # ----------------------------------
- # DISABLE CACHE (IMPORTANT)
- # ----------------------------------
- @app.after_request
- def disable_cache(resp):
-     resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-     resp.headers["Pragma"] = "no-cache"
-     resp.headers["Expires"] = "0"
-     return resp
- 
- # ----------------------------------
- # CLIENT IP (RENDER SAFE)
- # ----------------------------------
- def get_client_ip():
-     forwarded = request.headers.get("X-Forwarded-For", "")
-     return forwarded.split(",")[0].strip() if forwarded else request.remote_addr
- 
-+# ----------------------------------
-+# NORMALIZE STATE
-+# ----------------------------------
-+def normalize_state(raw_state):
-+    state = (raw_state or "").strip().lower()
-+
-+    if not state:
-+        return ""
-+
-+    if "delhi" in state or "nct" in state:
-+        return "delhi"
-+
-+    return state
-+
- # ----------------------------------
- # GPS → STATE (SAFE)
- # ----------------------------------
- def detect_state_from_gps(lat, lon):
-     try:
-         resp = requests.get(
-             "https://nominatim.openstreetmap.org/reverse",
-             params={"lat": lat, "lon": lon, "format": "json"},
-             headers={"User-Agent": "kc-scheme-calculator"},
-             timeout=5
-         )
- 
-         if not resp.headers.get("Content-Type", "").startswith("application/json"):
-             return None
- 
-         data = resp.json()
--        state = (data.get("address", {}).get("state") or "").lower()
-+        state = normalize_state(data.get("address", {}).get("state"))
- 
-         if state in STATE_TEMPLATE_MAP:
-             return state
- 
-     except Exception:
-         pass
- 
-     return None
- 
- # ----------------------------------
- # IP → STATE (BULLETPROOF)
- # ----------------------------------
- def detect_state_from_ip(ip):
-+    ip_is_private = False
-+    if ip:
-+        try:
-+            ip_is_private = ipaddress.ip_address(ip).is_private
-+        except ValueError:
-+            ip_is_private = False
-+
-     # -------- 1️⃣ ipapi.co --------
-     try:
--        resp = requests.get(f"https://ipapi.co/{ip}/json/", timeout=3)
-+        ipapi_url = "https://ipapi.co/json/" if ip_is_private or not ip else f"https://ipapi.co/{ip}/json/"
-+        resp = requests.get(ipapi_url, timeout=3)
-         if resp.headers.get("Content-Type", "").startswith("application/json"):
-             data = resp.json()
--            city = (data.get("city") or "").lower()
--            region = (data.get("region") or "").lower()
--
--            delhi_aliases = [
--                "delhi",
--                "new delhi",
--                "delhi ncr",
--                "nct",
--                "nct delhi",
--                "national capital territory",
--                "national capital territory of delhi"
--            ]
--
--            if any(x in city for x in delhi_aliases) or any(x in region for x in delhi_aliases):
--                return "delhi"
-+            region = normalize_state(data.get("region"))
+# ----------------------------------
+# STATE → TEMPLATE MAP
+# ----------------------------------
+STATE_TEMPLATE_MAP = {
+    "andhra pradesh": "scheme_andhra_pradesh.html",
+    "assam": "scheme_assam.html",
+    "bihar": "scheme_bihar.html",
+    "chhattisgarh": "scheme_chhattisgarh.html",
+    "delhi": "scheme_delhi_ncr.html",
+    "gujarat": "scheme_gujarat.html",
+    "haryana": "scheme_haryana.html",
+    "jharkhand": "scheme_jharkhand.html",
+    "karnataka": "scheme_karnataka.html",
+    "kerala": "scheme_kerala.html",
+    "madhya pradesh": "scheme_madhya_pradesh.html",
+    "maharashtra": "scheme_rest_of_maharashtra.html",
+    "odisha": "scheme_odisha.html",
+    "punjab": "scheme_punjab.html",
+    "rajasthan": "scheme_rajasthan.html",
+    "tamil nadu": "scheme_tamil_nadu.html",
+    "telangana": "scheme_telangana.html",
+    "uttar pradesh": "scheme_uttar_pradesh.html",
+    "uttarakhand": "scheme_uttarakhand.html",
+    "west bengal": "scheme_west_bengal.html"
+}
+
+# ----------------------------------
+# DISABLE CACHE (IMPORTANT)
+# ----------------------------------
+@app.after_request
+def disable_cache(resp):
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
+
+# ----------------------------------
+# CLIENT IP (RENDER SAFE)
+# ----------------------------------
+def get_client_ip():
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    return forwarded.split(",")[0].strip() if forwarded else request.remote_addr
+
+# ----------------------------------
+# NORMALIZE STATE
+# ----------------------------------
+def normalize_state(raw_state):
+    state = (raw_state or "").strip().lower()
+
+    if not state:
+        return ""
+
+    if "delhi" in state or "nct" in state:
+        return "delhi"
+
+    return state
+
+# ----------------------------------
+# GPS → STATE (SAFE)
+# ----------------------------------
+def detect_state_from_gps(lat, lon):
+    try:
+        resp = requests.get(
+            "https://nominatim.openstreetmap.org/reverse",
+            params={"lat": lat, "lon": lon, "format": "json"},
+            headers={"User-Agent": "kc-scheme-calculator"},
+            timeout=5
+        )
+
+        if not resp.headers.get("Content-Type", "").startswith("application/json"):
+            return None
+
+        data = resp.json()
+            state = normalize_state(data.get("address", {}).get("state"))
+
+        if state in STATE_TEMPLATE_MAP:
+            return state
+
+    except Exception:
+        pass
+
+    return None
+
+# ----------------------------------
+# IP → STATE (BULLETPROOF)
+# ----------------------------------
+def detect_state_from_ip(ip):
+    ip_is_private = False
+    if ip:
+        try:
+            ip_is_private = ipaddress.ip_address(ip).is_private
+        except ValueError:
+            ip_is_private = False
+
+    # -------- 1️⃣ ipapi.co --------
+    try:
+        ipapi_url = "https://ipapi.co/json/" if ip_is_private or not ip else f"https://ipapi.co/{ip}/json/"
+        resp = requests.get(ipapi_url, timeout=3)
+        if resp.headers.get("Content-Type", "").startswith("application/json"):
+            data = resp.json()
+            region = normalize_state(data.get("region"))
  
              if region in STATE_TEMPLATE_MAP:
                  return region
@@ -136,19 +114,14 @@ index d09b2e5a74a1d5ae2c8317a430104dace2e05d00..3df00fd9bf2ba9390ba64a05d1ffd0df
  
      # -------- 2️⃣ ipinfo.io (FALLBACK) --------
      try:
--        resp = requests.get(f"https://ipinfo.io/{ip}/json", timeout=3)
-+        ipinfo_url = "https://ipinfo.io/json" if ip_is_private or not ip else f"https://ipinfo.io/{ip}/json"
-+        resp = requests.get(ipinfo_url, timeout=3)
+        ipinfo_url = "https://ipinfo.io/json" if ip_is_private or not ip else f"https://ipinfo.io/{ip}/json"
+        resp = requests.get(ipinfo_url, timeout=3)
          if resp.headers.get("Content-Type", "").startswith("application/json"):
              data = resp.json()
--            region = (data.get("region") or "").lower()
--
--            if "delhi" in region:
--                return "delhi"
-+            region = normalize_state(data.get("region"))
- 
-             if region in STATE_TEMPLATE_MAP:
-                 return region
+            region = normalize_state(data.get("region"))
+
+            if region in STATE_TEMPLATE_MAP:
+                return region
      except Exception:
          pass
  
@@ -189,37 +162,26 @@ index d09b2e5a74a1d5ae2c8317a430104dace2e05d00..3df00fd9bf2ba9390ba64a05d1ffd0df
  # ----------------------------------
  @app.route("/scheme")
  def scheme():
--    raw_state = request.args.get("state", "").lower()
-+    candidates = []
+    candidates = []
  
--    # normalize
--    state = raw_state.strip()
-+    raw_state = normalize_state(request.args.get("state"))
-+    if raw_state:
-+        candidates.append(raw_state)
+    raw_state = normalize_state(request.args.get("state"))
+    if raw_state:
+        candidates.append(raw_state)
  
--    # Delhi handling
--    if "delhi" in state or "nct" in state:
--        state = "delhi"
-+    gps_state = normalize_state(request.cookies.get("gps_state"))
-+    if gps_state:
-+        candidates.append(gps_state)
+    gps_state = normalize_state(request.cookies.get("gps_state"))
+    if gps_state:
+        candidates.append(gps_state)
  
--    if state in STATE_TEMPLATE_MAP:
--        return render_template(
--            STATE_TEMPLATE_MAP[state],
--            state_name=state.upper()
--        )
-+    ip_state = detect_state_from_ip(get_client_ip())
-+    if ip_state:
-+        candidates.append(ip_state)
-+
-+    for candidate in candidates:
-+        if candidate in STATE_TEMPLATE_MAP:
-+            return render_template(
-+                STATE_TEMPLATE_MAP[candidate],
-+                state_name=candidate.upper()
-+            )
+    ip_state = detect_state_from_ip(get_client_ip())
+    if ip_state:
+        candidates.append(ip_state)
+
+    for candidate in candidates:
+        if candidate in STATE_TEMPLATE_MAP:
+            return render_template(
+                STATE_TEMPLATE_MAP[candidate],
+                state_name=candidate.upper()
+            )
  
      return render_template(
          "error.html",
