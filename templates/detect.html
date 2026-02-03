@@ -1,40 +1,40 @@
-  <!DOCTYPE html>
- <html>
- <head>
-   <title>Detecting Location</title>
- </head>
- <body>
- 
- <h3>Detecting your location…</h3>
- 
- <script>
- function showError() {
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KC Scheme Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+    button {
+      padding: 14px 30px;
+      font-size: 16px;
+      background: #ed7d31;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #d66a22;
+    }
+  </style>
+</head>
+<body>
+
+<h2>KC Scheme Calculator</h2>
+<p>Click below to view your applicable scheme</p>
+
+<button onclick="go()">Continue</button>
+
+<script>
+function go() {
   window.location.href = "/scheme";
- }
- 
- if (!navigator.geolocation) {
-   showError();
- } else {
-   navigator.geolocation.getCurrentPosition(
-     function(pos) {
-      fetch("/gps-detect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lat: pos.coords.latitude,
-          lon: pos.coords.longitude
-        })
-       })
-      .finally(() => {
-        window.location.href = "/scheme";
-      });
-     },
-     showError,
-     { enableHighAccuracy: true, timeout: 10000 }
-   );
- }
- </script>
- 
- </body>
- </html>
- 
+}
+</script>
+
+</body>
+</html>
